@@ -21,21 +21,21 @@ export default function Work() {
       company: "Gusto",
       year: "2022-2022",
       link: "https://deliverr.com",
-      key_projects: ["Aasdf", "asdf", "asdf"],
+      key_projects: [],
     },
     {
       role: "MBA Student Associate",
       company: "Activision Blizzard",
       year: "2020-2020",
       link: "https://www.activisionblizzard.com",
-      key_projects: ["Aasdf", "asdf", "asdf"],
+      key_projects: [],
     },
     {
       role: "Senior Product Manager (Founding Team)",
       company: "Astronomer",
       year: "2015-2019",
       link: "https://www.astronomer.io",
-      key_projects: ["Aasdf", "asdf", "asdf"],
+      key_projects: [],
     },
   ];
 
