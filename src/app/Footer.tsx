@@ -1,0 +1,26 @@
+import Link from "next/link";
+
+export default function Footer() {
+  return (
+    <div className="absolute bottom-10 right-10">
+      <div className="flex space-x-2">
+        <div>benjaminrgregory at gmail dot com</div>
+        <div>·</div>
+        <div>
+          <Link href="https://github.com/benjamingregory" target="_blank">
+            Github
+          </Link>
+        </div>
+        <div>·</div>
+        <div>
+          <Link
+            href="https://www.linkedin.com/in/benjamin-gregory"
+            target="_blank"
+          >
+            Linkedin
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
