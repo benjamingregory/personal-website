@@ -11,7 +11,6 @@ export default function Work() {
         "Joined Deliverr at the Series E stage to build out the Freight product. " +
         "The company was acquired by Shopify in 2022 to form Shopify Logistics. " +
         "This division was acquired by Flexport in 2023.",
-
       key_projects: [
         "Launched quoting tool for Growth team, reducing response time for customer quote requests from 24 hours to 10 seconds. ",
         "Launched Freight app with Deliverr’s Seller Portal, transitioning 65% of active customers to self-serve model and growing automated bookings by 40% over three months",
