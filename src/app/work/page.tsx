@@ -20,7 +20,7 @@ export default function Work() {
     {
       role: "Product Management Intern",
       company: "Gusto",
-      year: "2022-2022",
+      year: "2021-2021",
       link: "https://deliverr.com",
       key_projects: [],
     },
