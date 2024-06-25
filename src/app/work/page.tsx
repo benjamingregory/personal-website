@@ -9,7 +9,8 @@ export default function Work() {
       link: "https://flexport.com",
       summary:
         "Joined Deliverr at the Series E stage to build out the Freight product. " +
-        "The company was acquired by Shopify in 2022 and then Shopify was acquired by Flexport in 2023.",
+        "The company was acquired by Shopify in 2022 to form Shopify Logisitics. " +
+        "This division was acquired by Flexport in 2023.",
 
       key_projects: [
         "Launched quoting tool for Growth team, reducing response time for customer quote requests from 24 hours to 10 seconds. ",
