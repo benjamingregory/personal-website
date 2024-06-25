@@ -21,21 +21,31 @@ export default function Work() {
       company: "Gusto",
       year: "2021-2021",
       link: "https://deliverr.com",
-      key_projects: [],
+      key_projects: [
+        "Launched in-app control of Tax-Advantaged Accounts product, identifying technical requirements, creating wireframes, and leading team through four milestones in three month period",
+        "Evaluated expansion opportunity into Property & Casualty Insurance, modeling opportunity size under different company growth rates and market trends and providing detailed recommendations with key metrics",
+      ],
     },
     {
       role: "MBA Student Associate",
       company: "Activision Blizzard",
       year: "2020-2020",
       link: "https://www.activisionblizzard.com",
-      key_projects: [],
+      key_projects: [
+        "Ran technical product management pilot for internal platform supporting 125MM MAU, working with team of engineers to develop six new product features based on user interviews and creating a roadmap based on new user-centric prioritization framework",
+        "Forecasted migration costs from private data center to Google Cloud Platform and presented findings to COO",
+      ],
     },
     {
       role: "Senior Product Manager (Founding Team)",
       company: "Astronomer",
       year: "2015-2019",
       link: "https://www.astronomer.io",
-      key_projects: [],
+      key_projects: [
+        "Led eight-person customer team distributed across US, Poland, and India to successfully implement platform for global e-commerce division of Fortune 50 consumer goods brand",
+        "Built and promoted collaborative open data community for Apache Foundation project, garnering code contributions from US, Germany, Ireland, Israel, South Korea, and Taiwan: https://github.com/airflow-plugins",
+        "Maintained 100% customer retention through first year as customer-facing team member, including three months of accelerated prototyping while in Angelpad (#1 on MIT U.S. Seed Accelerator Rankings)",
+      ],
     },
   ];
 
