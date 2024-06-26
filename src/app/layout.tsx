@@ -26,8 +26,10 @@ export default function RootLayout({
       <body className={font.className}>
         <div className="flex">
           <Sidebar />
-          {children}
-          <Footer />
+          <div className="w-full h-screen flex justify-end flex-col">
+            <div className="h-screen w-full">{children}</div>
+            <Footer />
+          </div>
         </div>
       </body>
     </html>

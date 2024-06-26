@@ -50,8 +50,8 @@ export default function Work() {
   ];
 
   return (
-    <div className="flex w-full justify-center pt-12">
-      <div className="w-[600px] space-y-6 overflow-scroll scrollbar-hide flex flex-col divide-y-2 item-between">
+    <div className="flex w-full h-screen overflow-scroll scrollbar-hide justify-center pt-24">
+      <div className="w-[600px] space-y-6 flex flex-col divide-y-2 item-between">
         {education.map((item, idx) => (
           <div key={idx} className="pt-6 space-y-3">
             <div className="leading-5">
