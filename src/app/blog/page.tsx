@@ -28,7 +28,7 @@ export default function Blog() {
       <ul className="space-y-4">
         {data.map((post) => {
           return (
-            <li className=" flex-col flex">
+            <li key={post.href} className=" flex-col flex">
               <Link
                 className="hover:font-bold text-gray-800 text-lg"
                 href={post.href}
