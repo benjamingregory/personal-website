@@ -1,0 +1,140 @@
+## BUILDING COVER - Part III
+
+Last modified: 2024-06-27
+
+---
+
+<br />
+**This is part 3 of a series on building COVER.** [You can find part 1 here](/blog/building_cover/part_1)
+[and part 2 here](/blog/building/part_2).
+
+## Key features
+
+### Adding the ability to watch shows together
+
+<br />I knew from the outset that one of the core features I wanted to add was
+the ability to a watch a show with your friends. I wanted to make it seemless to
+not only share what you've been watching regardless of streaming platform but
+also to know where your friends are in a show so you can catch up and watch it
+together.
+
+I thought this would be pretty straightforward -- just add a "watch together"
+button, right? Turns out it was much more complex than I was expecting.
+
+<br />I started by creating a model for a UserConnection that would store the
+userId of one person and the userId of the person being invited to watch. So I
+added the model of a UserGroup. This would connect the UserShow (the model of an
+instance of a user watching the show) to a group. This allowed for multiple
+people to be in one group and watch the show together. So then I just needed to
+add the ability to add people to the group. Simple enough, right? But you don't
+want to just allow anyone to add anyone else to a group? What if you don't know
+the person inviting you? Or just don't want to join the group?
+
+<br />
+So you need the concept of a UserInvite as a limbo state between being invited and
+joining the group. And then you need to add the ability to accept or decline the
+invite. But you also don't want to have to accept every invite every time you want
+to watch with a group. Think of a groupchat -- sometimes its nice to just be spontaneously
+be added by someone you know and then leave the group if you want. So you also need
+a model of a "UserConnection" to indicate that the invitees are connected and can
+watch together immediately. So just to allow this one feature, I needed to add three
+additional models and manage the state of each of them.
+
+<br />
+
+### AI Chat Engine w/ Personalization
+
+<br />
+There's a whole world of people building "thin wrappers" around ChatGPT -- so I thought,
+hey - how about one more? ![Chat Conversation](/chat.png)
+
+<br />
+
+### Relevant News -- Bulk Categorization using AI
+
+<br />I didn't just use AI for the chat engine to get recommendations. One of
+the features I wanted to build was to pull in news articles about the shows
+you've been watching. This seems simple and the scraping part of it is. Just
+used BeautifulSoup to scrape the articles and then store them in a Postgres. The
+hard part was categorizing them accurately and in a scalable fashion. Even if it
+was obvious that an article was about, say, the show Succession, I needed to be
+able to tie that back to the exact show id in my database. Now, I could do that
+manually for a couple but for all of them, that was not going to happen.
+
+<br /> So I first pulled all shows from my database along with their show ids
+and descriptions and fed that to the OpenAI database as part of a system prompt.
+For context, Cover has about 176k shows in its database so this was a
+substantial amount of data. I then fed each article into the OpenAI API and
+asked it to output a JSON object with the article_url and show_id. I took this
+output and stored it in Postgres. Altogether, it took about $30 to process but
+saved me days of manual work and I ended up with around 10k categorized articles
+to seed the news feed.
+
+<br />
+
+### Internal Tools
+
+## What I did Too Soon
+
+<br />
+### Dark Mode Exploring a new idea is really exciting because it's a blank canvas
+on which you can exercise your creativity. That being said, prioritization is still
+important and there are some things that I wish I had prioritized differently. Specifically,
+I'm thinking about adding a Dark Mode switch. I'll start by saying that using the
+app at night with a darker theme is much easier on the eyes. Now that I have it,
+I do really like it. But I wouldn't have started it so early for two reasons: 1)
+it's not a core feature that affects the core user experience or materially addresses
+the problem the product is trying to solve and 2) it slows down the development of
+new features as now everything has to have both a light and dark theme. Yes, eventually
+I would have had to do this but it would be much easier to do it all at once rather
+than piecemeal.
+
+<br />
+### Episode Specific Conversations
+<br />A second feature that I wish I had waited on was the chat features. It's a
+feature that isn't useful in isolation. So you have a cold-start problem as no
+one wants to start the conversation and the action-reward cycle is essentially
+non-existent if there are not others engaging in the discussion with you. Unless
+you have high activity, it's going to feel like a ghost town. So why did I build
+this so early? Well, put simply, it came out of a discussion on Product Hunt and
+I thought it would be a fun challenge to explore.
+
+![Product Hunt](/product_hunt.png)
+
+<br />
+For something like a movie, which exists in a binary-state -- you've either seen
+it or you haven't. In that case, it's pretty easy to design a chat feature that allows
+you to discuss the movie as a whole. You can organize the chat by topic threads to
+discuss themes, events, reveals, theories, etc but the only piece of information
+you need going in is whether or not the user has seen it.
+
+<br />
+Television is different. It's story is serialized and can be told over dozens (or
+even hundreds) of installments taking place over years both in-world and in real-time.
+The show is stopped at discrete invtervals, with the viewers understanding of the
+show changing depending on where they have stopped. Designing a chat feature in this
+environment is much more complex because you need to know where the user is in the
+show to avoid spoilers.
+
+<br />
+As a first step, I added the ability to start a chat on a specific episode basis.
+If you click on an episode, a popover window opens with the current discussion. If
+you have seen the episode, it will show the current discussion. If you haven't, it
+will show a warning that there may be spoilers ahead. This required me to model the
+concept of a conversation that can be associated with the show and episode and then
+a message concept that can be attached to a conversation. This was a great way to
+expand out the data model but on reflection, I can already see ways that its limited.{" "}
+
+## Next Steps
+
+---
+
+<br />
+
+<span className="text-sm">
+  \* I do feel compelled to say that we did launch a product that made a
+  significant impact and which (from what I've heard from people are still
+  there) is growing at a steady rate. This may seem petty to say but I do want
+  to shout out everyone who worked on this product and say that we were able to
+  build something great despite everything.
+</span>

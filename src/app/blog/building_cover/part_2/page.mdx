@@ -1,0 +1,135 @@
+## BUILDING COVER - Part II
+
+Last modified: 2024-07-08
+
+---
+
+<br />
+[This is part 2 of a series on building COVER. You can find part 1 here](/blog/building_cover/part_1).
+
+## The Stack
+
+<br />
+
+### **App:** Next.js, TypeScript, TailwindCSS, Clerk
+
+Before I took the job at Deliverr, I was tinkering around with a podcast app that
+I was building with Next.js. I appreciated some of the "batteries included" features
+of Next.js like a straightforward routing system and the ability to easily add API
+routes. Tailwind was new to me but I kept hearing about it on the Youtube videos
+so I decided to give it a try. To be honest, I have always hated pure CSS. I found
+it's syntax to be convuluted and unintuitive. Tailwind was a gamechanger for me;
+everything was clean and easy to read. It kept me in the flow of building the app
+while rapidly changing the styling. As someone without a designer to work with, my
+design process basically involved building the app and then changing things over
+and over again until it looked good.
+
+<br />
+For authentication, I used Clerk for no particular reason other than I never think
+it's good to roll your own authentication when you're a small team. I am a very small
+team all myself so I was happy to offload the authentication to Clerk.
+<br />
+
+### **API:** Node.js, Prisma, Express, Docker
+
+I've used Python the most but only used Django once and haven't used Flask at all.
+To keep things simple for myself and stay in one language's headspace, I decided
+to use Node with Express. This was a stack used by the first company I worked at
+(which at this point was ~10 years ago) and I had confidence that the ecosystem around
+it was mature enough to ramp up on.
+
+### **AI:** Python, Langchain, OpenAI, ChromaDB
+
+<br />I was excited that Langchain had a Javascript SDK but to be honest, I
+found the documentation was lacking compared to it's Python counterpart. I also
+really didn't like the syntax of LCEL (Langchain Expression Language) and found
+it too declarative and abstract to be useful. I can see it being useful if you
+are already familiar with it but I found it difficult to learn, especially given
+how fast it was changing. Everytime I found a tutorial, something about it would
+throw an error or reference an older version of the SDK.
+
+<br />I eventually decided that I didn't need to benefits that Langchain could
+theoretically provide (switching LLMs on the fly) and decided to just integrate
+directly with the OpenAI API direclty.
+
+<br />I knew I wanted to tinker with an open-source vector DB and tried a few
+options (Weaviate, Milvus, Pinecone) but ended up going with ChromaDB because it
+was the most straightforward to setup for a simple use case. I can see the
+benefits of the others for more of a production use case with a team that is
+going to be fine-tuning constantly but for my use case, I just needed to store
+vectors and query them for a simple chat engine.
+<br />
+
+### **DB:** Postgres, Redis
+
+I use Postgres. It's stable and scalable. Not really a whole lot else to
+say. I know that some people swear by MongoDB for prototyping but I've found
+that NoSQL inevitably becomes more trouble than it's worth.
+
+<br /> Because I was retrieving a large amount of data from this Postgres that
+wasn't really going to change, I decided to cache it in Redis to speed up
+performance. This made a huge difference in the experience using the app
+(everything was just much smoother) and invalidating the cache when data was
+changed was very straightforward.
+<br />
+
+### **Data:** Pandas, BeautifulSoup, Knex, Cron
+
+I truly hate bulk loading data. I've done it so many times and the smallest
+problem can take days to debug. I once tried to transfer data from MongoDB to a Postgres
+database and it kept failing because of timestamp formatting issues. I spent three
+days working through every row, eventually normalizing 17 distinct timestamp formats
+into one that would work. (e.g. 12/8/99, 12/08/1999, Dec 8, 1999, December 8, 1999,
+etc.). I truly hate this work and it's a large reason I moved away from data engineering.
+
+<br />
+Because I wasn't loading terabytes of data at a time and (theoretically) only had
+to load it once, I decided download the data as JSON, load it into memory using a
+Pandas dataframe, and then bulk insert it into Postgres. When this worked, this was
+great. When it didn't because of a null value in a required column or a missing foreign
+key to another table, I had eschew the bulk upload and insert each row one by one.
+This was annoying but I was able to speed things up using the knex library in Node,
+which allowed for asyncronrous inserts.
+<br />
+### **Infrastructure:** Vercel, Railway, Github
+
+I've used various cloud providers in the past (mostly AWS and GCP) and there's no
+getting away that they're more flexible and affordable. But -- and this is a big
+caveat -- I really don't recommend using these for solo developers / small teams.
+The value proposition of any boutique hosting service is pretty straightforward;
+they abstract away the complexity of managing your own infrastructure in exchange
+for a slightly higher variable cost. While they are likely just running a k8s cluster
+on top of the major providers, it is enough of a value to just set it and forget
+it that I think it's worth it.{" "}
+
+<br /> Vercel is slightly different in that it's soemwhat of a PaaS than a pure
+hosting service. The ability to deploy a Next.js app and take advantage of all
+the features (optimized image cache, serverless functions, edge network, etc.)
+is another way I could get some performance boosts without having to think about
+it.
+
+<br /> Between the app on Vercel and the DB / API on Railway, my CI/CD pipeline
+was as simple as pushing to Github. This honestly ended up being one of the most
+valuable investments early on as I was able to push changes to production with a
+single command and iterate on them rapidly. The con is that you have to be
+careful not to develop bad habits and just push everything to master without
+checking for breaking changes. I did this a few times and even if it's not hard
+to undo, it's just embarrasing to crash your app in production, even if no one
+is using it yet.
+
+<br />
+### **Payments:** Stripe
+<br />
+For payments, I decided to use Stripe. Like Auth (but even more so), I'm not going
+to try to rebuild the wheel taking payments. The way I wanted to bill was a single
+monthly fee to use the app beyond a certain point. So at least that meant that I
+didn't need to worry about the complexity of different pricing tiers or usage-based
+billing. I looked at [Lemon Squeezy](https://lemonsqueezy.com/) and [Recurly](https://recurly.com/)
+and can absolutely see the benefits that they provide. Honestly, I prefer going with
+a smaller provider in a professional setting as you generally can get better support
+and there is more flexibility in pricing. That being said, for this project because
+it was just me, I went with Stripe because it had far and away the best documentation
+and community support. That's not a knock on the other two -- it's just a result
+of being the dominant leader; more people are using it and answering questions on
+StackOverflow, writing blog posts on Medium about the experience, etc. The power
+of community is such a strong force.
