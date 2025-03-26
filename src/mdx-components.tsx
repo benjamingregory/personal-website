@@ -8,7 +8,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h3: ({ children }) => <h3 style={{ fontSize: "24px" }}>{children}</h3>,
     h4: ({ children }) => <h4 style={{ fontSize: "18px" }}>{children}</h4>,
     ul: (props: any) => <ul className="text-sm list-disc" {...props} />,
-    p: (props: any) => <p className="text-sm" {...props} />,
+    p: (props: any) => <p className="text-[13px]" {...props} />,
     a: (props: any) => <a className="font-bold " {...props} />,
     img: (props: any) => (
       <span className="flex justify-center">
