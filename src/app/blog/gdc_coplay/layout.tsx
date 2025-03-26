@@ -10,9 +10,9 @@ const font = Montserrat({ subsets: ["latin"], weight: ["400", "700"] });
 export default function MdxLayout({ children }: { children: React.ReactNode }) {
   // Create any shared layout or styles here
   return (
-    <div className="flex flex-col w-full items-center">
+    <div className="flex flex-col w-full h-full overflow-scroll items-center">
       <div className={font.className}>
-        <div className="text-justify w-[600px] overflow-scroll scrollbar-hide pt-12 h-[calc(100vh_-_50px)]">
+        <div className="text-justify overflow-scroll sm:w-[600px] overflow-scroll scrollbar-hide px-4 pt-12 sm:h-[calc(100vh_-_50px)]">
           {children}
         </div>
       </div>

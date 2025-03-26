@@ -54,7 +54,9 @@ export default function Sidebar() {
           ))}
         </div>
       </div>
-      <div className="pb-6 flex justify-center">Made with ♥ by Me</div>
+      <div className="hidden pb-6 sm:flex justify-center">
+        Made with ♥ by Me
+      </div>
     </div>
   );
 }
