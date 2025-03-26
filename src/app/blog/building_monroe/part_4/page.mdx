@@ -1,11 +1,11 @@
-## BUILDING COVER - Part III
+## BUILDING MONROE - Part IV
 
 Last modified: 2024-06-27
 
 ---
 
 <br />
-**This is part 3 of a series on building COVER.** [You can find part 1 here](/blog/building_cover/part_1)
+**This is part 4 of a series on building MONROE.** [You can find part 1 here](/blog/building_monroe/part_1)
 [and part 2 here](/blog/building/part_2).
 
 ## Key features
@@ -46,7 +46,9 @@ additional models and manage the state of each of them.
 
 <br />
 There's a whole world of people building "thin wrappers" around ChatGPT -- so I thought,
-hey - how about one more? ![Chat Conversation](/chat.png)
+hey - how about one more?{" "}
+
+![Chat Conversation](/chat.png)
 
 <br />
 
@@ -63,7 +65,7 @@ manually for a couple but for all of them, that was not going to happen.
 
 <br /> So I first pulled all shows from my database along with their show ids
 and descriptions and fed that to the OpenAI database as part of a system prompt.
-For context, Cover has about 176k shows in its database so this was a
+For context, Monroe has about 176k shows in its database so this was a
 substantial amount of data. I then fed each article into the OpenAI API and
 asked it to output a JSON object with the article_url and show_id. I took this
 output and stored it in Postgres. Altogether, it took about $30 to process but

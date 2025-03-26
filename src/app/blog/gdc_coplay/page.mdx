@@ -1,0 +1,156 @@
+## One Big Takeaway from GDC 2025
+
+Last modified: 2025-03-25
+
+---
+
+Last week, I decided to attend GDC 2025 in San Francisco.
+I worked at Activision during business school, and while I no longer work
+directly in the industry, I still follow game development closely—especially
+where AI intersects with tedious workflows that could be automated.
+The industry’s long-standing issues with crunch and overtime make it clear
+that anything reducing inefficiencies is worth exploring.
+
+I impulsively bought an Expo pass, unsure if it would be worth it but hopeful
+there'd be some companies working on incorporating AI in interesting ways.
+As it turns out, it absolutely was. Several companies are leveraging AI in
+game development in exciting ways but there’s one I really wanted to highlight.
+
+## Coplay, The Cursor for Game Development
+
+Coplay offers a chat interface plugin for game engines (Unity
+currently but it sounds like the goal is to expand to all platforms). The talk
+I attended was given by [Jos van der Westhuizen](https://www.linkedin.com/in/josvdw/),
+co-founder and CEO, and involved a couple pre-recorded demos using Coplay
+to make edits within a game and then create entirely new levels
+essentially from scratch, complete with physics and combat mechanics.
+
+Rather than try to explain it myself, I’ll let them do it:
+
+![Coplay](https://www.youtube.com/watch?v=ipcNw4CVGiM/0.jpg)
+
+I had a chance to talk with [Joned](https://www.linkedin.com/in/joned-sarwar-59055827/),
+co-founder and CTO, after their presentation, and we chatted about the future of their product.
+I came away from the presentation and discussion with a pretty clear (albeit, wild)
+roadmap of where this tech could go.
+
+Disclaimer that this is not necessarily how they might describe their future
+and, in fact, they might hate these ideas. But I think it’s fun to think about
+where this could go.
+
+### Level 1 – Vibe Game Development
+
+The “vibe” moniker is a little overhyped right
+now and people kind of have a kneejerk reaction to it as either a revolutionary
+accelerant or a tech debt nightmare waiting to happen. I think the truth is in
+the middle and for early learning and rapid prototyping, the ability to stay in
+the flow and tweak things you know you want but aren’t familiar with which setting
+to manipulate, I do have to say it’s game changing and Jos showed a great demo
+where he showed this in practice. Creating menus, tweaking settings, adding
+scripting logic for character interactions; all of this stuff is trivial to do
+with Coplay. This is the most immediate use case for Coplay and I think it’s
+going to be a hit with both new developers who have a fuzzy vision of what
+they want but don't necessarily know how to get there and experienced developers
+who know exactly what they want and don’t want to spend time clicking through
+menus to get there.
+
+### Level 2 - Agentic Game Development
+
+Speaking of catering to experienced developers,
+From their experience building games, the team at Coplay clearly knows that devs
+have workflows that are specific to their project and style. That's why there's a
+recording button where you can have Coplay watch what you're doing and record the actions
+to learn what is happening and what is trying to be accomplished. Walking the model
+through each step of the process is exactly what you would do with a new member of
+your team and will help the AI avoid the pitfalls of not understanding the context
+of what you're asking or hallucinate and create something totally from far afield.
+This is where I think Coplay could really shine. Imagine a world where you have
+a team of agents who are trained on accomplishing specific tasks.Agents could specialize
+in scene development (e.g. Create a shader for a rainy day scene with reflective
+puddles and dark clouds), asset creation (e.g. Generate a dense, overgrown forest
+with varied terrain, ancient ruins, and soft, diffused lighting.), or even NPC
+mechanics (e.g.Generate an AI script for an enemy that patrols an area, chases the
+player on sight, and retreats when health is low.) What’s more, agents could leverage MCPs to plug
+into other generative platforms -- something Coplay can already do with integrations
+into Meshy and Tripo for asset creation. Once AIs are intialized with proper context,
+they could work together to take the seed of a game that is tightly tuned and build out
+new levels, variations on existing levels, or even entirely new games in the same style.
+
+### Level 3 -- Abstracted Game Development
+
+Watching Coplay go through the Unity platform, understand developer workflows,
+and adjust settings on it's own is really exciting and demonstrates how ripe the game
+industry is for AI discruption. But you can already see a world where Coplay lives
+as a full abstraction layer on top of any game engine. In this world, Coplay is the
+main interface with the engine living underneath it. Users interact with Coplay
+similar to how Roblox has done it with a simplified workflow on top of their own game engine.
+In this version, however, the game engine becomes secondary to the translation
+layer (in this case Coplay) and game development as a feature can become as
+easy as embedding a chat interface with an iframe representing the Scene / Game View.
+
+This may sound kinda far-fetched but there are two analogues that come to mind here –
+the first is the relationship between AI features today and the underlying models
+they rely on. For people who are interested, the models matter but for the most part,
+the average person (even one using AI tooling) does not know which models they are
+using and in what combination. When trying to get through customer service, ask
+Siri a question, or edit a document, they just care about results. The best companies
+creating workflows for AI development (make.com, n8n) are really good at abstracting
+away implementation details so the user can focus on results.
+
+The second analogue is React Native, a write-once in TS/JS and deploy everywhere
+framework. React Native is not so abstracted as to be a drag and drop interface;
+in fact, it is relatively complex in the types of apps and structures you want to
+create with it. However, there will will occasionally be a point where a package
+you want to install won’t work nicely with React Native and you need to eject
+your app into native code (e.g. Java / Obj-C). This is a one-way ejection so
+there’s no going back but then you have a full project of native code set up
+with a lot of boilerplate already done. The game engine itself is a set of
+abstractions collected into a single environment but that's not to say that
+it’s the final form of game development. Unity / Unreal may be the right tool
+for the job eventually but starting a new project in them may not be.
+
+### Questions and Thoughts
+
+#### The Context Conundrum
+
+The question of how Coplay handles context reveals perhaps the most significant
+technical challenge in AI-assisted game development. Modern games comprise thousands
+or even tens of thousands of unique files—a labyrinth of assets, scripts, and configurations
+that could potentially be prohibitively expensive (either in pure $$$ or just time / efficiency)
+to tokenize and process in their entirety. This context handling capability likely represents
+Coplay's core innovation and competitive advantage. The true breakthrough isn't merely getting
+an AI to perform impressive tasks; it's enabling it to do so efficiently and economically
+within the sprawling ecosystem of a game project.
+
+#### Autonomous Agents Governance
+
+Coplay comes with variable settings for the extent to which the AI should make changes to your project (e.g.
+Normal vs. Beast mode where the AI will take on much more responsibility and independent judgements.)
+The question becomes that if you have a team of agents working on a project, perhaps completely
+independently, how do you ensure changes made by these agents are in line with the vision of the project?
+For that, I think there are three necessary features (which, by the way, they may already be working on, not sure):
+
+**1. Version Control** - This is a must-have for any project but especially for one where
+multiple agents are making changes. There already is [Unity Version Control](https://unity.com/solutions/version-control) but imagine being able
+to see the agent's [chain-of-thought](https://arxiv.org/abs/2201.11903), identify where an agent
+went off-course, roll back to that previous state and start a new iteration. Or branch it from a certain
+point and test an alternate version. With this version control for generative AI, agents can create as
+many permutations of a project as desired and the developer can choose the one that best fits their vision.
+
+**2. Role Based Permissions** - Like any external developer that you would grant system access to,
+there need to be guardrails of what resources the AI can access and what it can do with them.
+The Normal vs. Beast mode is the beginning of this and helps match developer velocity with risk
+tolerance. But that assumes that there is a [Human in the loop](https://en.wikipedia.org/wiki/Human-in-the-loop),
+which is a massive help in ensuring each change is in line with the project vision. In a fully agentic system,
+being able to to give specific permissions and motivations to agents helps simulate a real-world team environment.
+You can easily imagine a system where one agent responsible for asset creation is given more leeway to
+experiment with new styles and techniques while another agent responsible for combat mechanics is
+given more strict guidelines to follow.
+
+**3. Contextual Audit Logs** - Seeing that a setting was modified is one thing but understanding
+the context of why it was changed, what logic went into making that change, and what else was changed
+alongside it is essential for ensuring the project doesn't become a black box that no one can understand.
+I believe this was mentioned in the talk but I think it's worth reiterating that this is a critical
+feature for any AI-assisted development tool. A well-designed knowledge graph of all decisions, modifications,
+and outcomes ensures that human developers still have full oversight into the project and can trace back
+any changes to their source.

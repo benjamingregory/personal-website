@@ -3,11 +3,11 @@ import Link from "next/link";
 export default function Work() {
   let education = [
     {
-      project: "Cover",
-      site: "trycover.co",
-      link: "https://trycover.co",
+      project: "Monroe",
+      site: "joinmonroe.com",
+      link: "https://joinmonroe.com",
       summary:
-        "Cover is your pop culture companion. It's a platform for fans to track your favorite tv shows.",
+        "Monroe is your pop culture companion. It's a platform for fans to track your favorite tv shows.",
       tech_stack: [
         "App: React, Next.js, TypeScript, TailwindCSS",
         "API:  Node.js, Prisma, Express, Docker",

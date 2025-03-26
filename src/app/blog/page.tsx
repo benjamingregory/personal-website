@@ -3,19 +3,40 @@ import Link from "next/link";
 export default function Blog() {
   const data = [
     {
-      title: "Building Cover...........Part I, The Start",
-      date: "2024-07-08",
-      href: "/blog/building_cover/part_1",
+      title: "Building Monroe...........Part I, The Start",
+      date: "2025-03-10",
+      href: "/blog/building_monroe/part_1",
+    },
+    {
+      title: "Building Monroe...........Part II, The Tech Stack",
+      date: "2025-03-10",
+      href: "/blog/building_monroe/part_2",
+    },
+    {
+      title: "Building Monroe...........Part III, Features and Reflections",
+      date: "2025-03-10",
+      href: "/blog/building_monroe/part_3",
     },
     // {
-    //   title: "Building Cover...........Part II, The Tech Stack",
-    //   date: "2024-07-08",
-    //   href: "/blog/building_cover/part_2",
+    //   title:
+    //     "Building Monroe...........Part IV, Building with AI and Product Managing Yourself",
+    //   date: "2025-03-10",
+    //   href: "/blog/building_monroe/part_4",
     // },
     // {
-    //   title: "Building Cover...........Part III, Features and Reflections",
-    //   date: "2024-07-08",
-    //   href: "/blog/building_cover/part_3",
+    //   title: "Building Monroe...........Part V, Features and Reflections",
+    //   date: "2025-03-10",
+    //   href: "/blog/building_monroe/part_5",
+    // },
+    {
+      title: "GDC 2025 Spotlight: Coplay",
+      date: "2025-03-25",
+      href: "/blog/gdc_coplay",
+    },
+    // {
+    //   title: "An exploration of pen plotting",
+    //   date: "2025-03-10",
+    //   href: "/blog/pen_plotting",
     // },
   ];
 
@@ -35,7 +56,7 @@ export default function Blog() {
               >
                 {post.title}
               </Link>
-              <p className="text-gray-400">Published on {post.date}</p>
+              <p className="text-gray-400 text-sm">Published on {post.date}</p>
             </li>
           );
         })}
