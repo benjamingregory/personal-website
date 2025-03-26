@@ -7,7 +7,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h2: ({ children }) => <h2 style={{ fontSize: "36px" }}>{children}</h2>,
     h3: ({ children }) => <h3 style={{ fontSize: "24px" }}>{children}</h3>,
     h4: ({ children }) => <h4 style={{ fontSize: "18px" }}>{children}</h4>,
-    ul: (props: any) => <ul className="list-disc" {...props} />,
+    ul: (props: any) => <ul className="text-sm list-disc" {...props} />,
     p: (props: any) => <p className="text-sm" {...props} />,
     a: (props: any) => <a className="font-bold " {...props} />,
     img: (props: any) => (
