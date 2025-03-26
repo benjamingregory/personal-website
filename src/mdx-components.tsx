@@ -9,7 +9,17 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h4: ({ children }) => (
       <h4 style={{ fontSize: "20px italic" }}>{children}</h4>
     ),
-    ul: (props: any) => <ul className="text-sm list-disc" {...props} />,
+    ul: (props: any) => (
+      <ul
+        style={{
+          fontSize: "14px",
+          listStyleType: "disc",
+          fontStyle: "italic",
+        }}
+        className="pl-4"
+        {...props}
+      />
+    ),
     p: (props: any) => <p style={{ fontSize: "14px" }} {...props} />,
     a: (props: any) => <a className="font-bold " {...props} />,
     img: (props: any) => (
