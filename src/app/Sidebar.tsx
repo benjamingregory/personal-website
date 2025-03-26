@@ -27,7 +27,7 @@ export default function Sidebar() {
   let currentSection = params.split("/")[1];
 
   return (
-    <div className="w-[240px] border-r-2 border-gray-200 justify-between flex flex-col h-[100vh]">
+    <div className="w-[140px] sm:w-[240px] border-r-2 border-gray-200 justify-between flex flex-col h-[100vh]">
       <div className="flex pt-2 flex-col items-start justify-start space-y-2">
         <Link href="/">
           <div className="pl-4">Ben Gregory</div>

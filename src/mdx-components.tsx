@@ -10,7 +10,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       <h4 style={{ fontSize: "20px italic" }}>{children}</h4>
     ),
     ul: (props: any) => <ul className="text-sm list-disc" {...props} />,
-    p: (props: any) => <p className="font-[10px] sm:text-[13px]" {...props} />,
+    p: (props: any) => <p className="text-[10px] sm:text-[13px]" {...props} />,
     a: (props: any) => <a className="font-bold " {...props} />,
     img: (props: any) => (
       <span className="flex justify-center">
