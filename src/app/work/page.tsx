@@ -1,18 +1,36 @@
 import Link from "next/link";
 
 export default function Work() {
-  let education = [
+  let work = [
+    {
+      role: "Founder / Solo Dev",
+      company: "Monroe",
+      year: "2024-2025",
+      link: "https://joinmonroe.com",
+      summary:
+        "Starting with the challenge of building an app end-to-end by myself,\
+        I built Monroe, the Goodreads / Letterboxd for television.",
+      key_projects: [
+        "Wrote 80k lines of code",
+        "Built responsive web app with Next.js, Typescript, Tailwind",
+        "Built API w/ Express, Prisma, Node and then rebuilt in Hono, Dribble, and Deno",
+        "Built AI Service w/ Python, TS, PGVector, and OpenAI, powering article classification, transcription, chat interface, and\
+        recommendation engine",
+      ],
+    },
     {
       role: "Senior Product Manager (Freight)",
       company: "Deliverr → Shopify → Flexport",
       year: "2022-2023",
       link: "https://flexport.com",
       summary:
-        "Joined Deliverr at the Series E stage to build out the Freight product. " +
+        "Joined Deliverr at the Series E stage to build out the domestic Freight product and\
+        grew it to $15MM ARR over two years. " +
         "The company was acquired by Shopify in 2022 to form Shopify Logistics. " +
         "This division was acquired by Flexport in 2023.",
       key_projects: [
-        "Launched quoting tool for Growth team, reducing response time for customer quote requests from 24 hours to 10 seconds. ",
+        "Launched pallet labels and custom scanning app for tracking across distribution warehouses",
+        "Launched quoting tool for Growth team, reducing response time for customer quote requests from 24 hours to 10 seconds",
         "Launched Freight app with Deliverr’s Seller Portal, transitioning 65% of active customers to self-serve model and growing automated bookings by 40% over three months",
       ],
     },
@@ -50,22 +68,22 @@ export default function Work() {
   ];
 
   return (
-    <div className="flex w-full h-screen overflow-scroll scrollbar-hide justify-center pt-24">
-      <div className="w-[600px] space-y-6 flex flex-col divide-y-2 item-between">
-        {education.map((item, idx) => (
+    <div className="flex w-full h-screen overflow-scroll scrollbar-hide justify-center pt-4 sm:pt-24">
+      <div className="max-w-[600px] w-[80%] space-y-6 flex flex-col divide-y-2 item-between">
+        {work.map((experience, idx) => (
           <div key={idx} className="pt-6 space-y-3">
             <div className="leading-5">
-              <div className="text-lg font-bold">{item.role}</div>
+              <div className="text-lg font-bold">{experience.role}</div>
               <div className="hover:font-bold ">
-                <Link href={item.link} target="_blank">
-                  {item.company}
+                <Link href={experience.link} target="_blank">
+                  {experience.company}
                 </Link>
-                &nbsp;({item.year})
+                &nbsp;({experience.year})
               </div>
             </div>
-            <div className="leading-5 text-justify">{item.summary}</div>
+            <div className="leading-5">{experience.summary}</div>
             <ul className="list-disc pl-6 space-y-1">
-              {item.key_projects.map((i, idx) => (
+              {experience.key_projects.map((i, idx) => (
                 <li className="leading-5" key={idx}>
                   {i}
                 </li>

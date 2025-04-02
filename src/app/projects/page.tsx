@@ -10,8 +10,8 @@ export default function Work() {
         "Monroe is your pop culture companion. It's a platform for fans to track your favorite tv shows.",
       tech_stack: [
         "App: React, Next.js, TypeScript, TailwindCSS",
-        "API:  Node.js, Prisma, Express, Docker",
-        "AI: Python, Langchain, OpenAI",
+        "API: Deno, Drizzle, Hono, Docker",
+        "AI: Python, Typescript, OpenAI",
         "DB: Postgres, Redis, ChromaDB",
         "Data: Pandas, BeautifulSoup, Cron",
         "Infrastructure: Vercel, Railway",
@@ -39,8 +39,8 @@ export default function Work() {
   ];
 
   return (
-    <div className="flex w-full h-screen w-full justify-center pt-24">
-      <div className="w-[600px] space-y-6 flex flex-col divide-y-[1px] item-between">
+    <div className="flex w-full h-screen w-full justify-center pt-4 sm:pt-24">
+      <div className="w-[80%] max-w-[600px] space-y-6 flex flex-col divide-y-[1px] item-between">
         {education.map((item, idx) => (
           <div key={idx} className="pt-6">
             <div className="items-center flex">

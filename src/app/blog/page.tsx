@@ -65,9 +65,11 @@ export default function Blog() {
   }
 
   return (
-    <div className="flex w-full flex-col h-screen pl-4 sm:pl-16 pt-24">
-      <div className="text-xl font-bold pb-2">Posts</div>
-      <BlogList data={data} />
+    <div className="flex w-full h-screen w-full justify-center pt-4 sm:pt-24">
+      <div className="flex w-[80%] max-w-[600px] flex-col">
+        <div className="text-xl font-bold pb-2">Posts</div>
+        <BlogList data={data} />
+      </div>
     </div>
   );
 }
