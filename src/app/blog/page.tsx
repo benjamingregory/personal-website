@@ -40,8 +40,13 @@ export default function Blog() {
     // },
     {
       title: "Sculpting Code",
-      date: "2025-08-11",
+      date: "2025-08-04",
       href: "/blog/sculpting_code",
+    },
+    {
+      title: "The AI Open Source Paradox ",
+      date: "2025-08-11",
+      href: "/blog/open_source_paradox",
     },
   ];
 
