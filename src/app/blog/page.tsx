@@ -38,6 +38,11 @@ export default function Blog() {
     //   date: "2025-03-10",
     //   href: "/blog/pen_plotting",
     // },
+    {
+      title: "Sculpting Code",
+      date: "2025-08-11",
+      href: "/blog/sculpting_code",
+    },
   ];
 
   function BlogList({
