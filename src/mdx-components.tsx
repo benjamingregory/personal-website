@@ -22,11 +22,33 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ),
     p: (props: any) => <p style={{ fontSize: "14px" }} {...props} />,
     a: (props: any) => <a className="font-bold " {...props} />,
-    img: (props: any) => (
-      <span className="flex justify-center">
-        <Image alt="image" width={400} height={400} {...props} />
-      </span>
-    ),
+    img: (props: any) => {
+      // Ensure alt text is provided, fallback to empty string for decorative images
+      const altText = props.alt || "";
+      const isDecorative = !altText;
+      
+      return (
+        <figure className="flex flex-col items-center my-4">
+          <span className="flex justify-center">
+            <Image 
+              alt={altText} 
+              width={400} 
+              height={400} 
+              {...props}
+              // Mark decorative images appropriately for screen readers
+              role={isDecorative ? "presentation" : undefined}
+              aria-hidden={isDecorative ? "true" : undefined}
+            />
+          </span>
+          {/* Optional: Add caption support if title attribute is provided */}
+          {props.title && (
+            <figcaption className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+              {props.title}
+            </figcaption>
+          )}
+        </figure>
+      );
+    },
     ...components,
   };
 }

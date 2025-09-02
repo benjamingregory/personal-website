@@ -1,4 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Work Experience",
+  description: "Professional experience as a software engineer and product manager. From founding startups to leading teams at scale-ups and established companies.",
+  openGraph: {
+    title: "Work Experience | Ben Gregory",
+    description: "Professional experience as a software engineer and product manager",
+    type: "website",
+    url: "https://bengregory.com/work",
+  },
+};
 
 export default function Work() {
   let work = [

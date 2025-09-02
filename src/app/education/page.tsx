@@ -1,4 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Education",
+  description: "Educational background including MBA from Stanford Graduate School of Business, Venture for America Fellowship, and undergraduate degree.",
+  openGraph: {
+    title: "Education | Ben Gregory",
+    description: "Educational background including Stanford MBA and Venture for America Fellowship",
+    type: "website",
+    url: "https://bengregory.com/education",
+  },
+};
 
 export default function Education() {
   let education = [
