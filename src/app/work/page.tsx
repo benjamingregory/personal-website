@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Work Experience",
-  description: "Professional experience as a software engineer and product manager. From founding startups to leading teams at scale-ups and established companies.",
+  description:
+    "Professional experience as a software engineer and product manager. From founding startups to leading teams at scale-ups and established companies.",
   openGraph: {
     title: "Work Experience | Ben Gregory",
-    description: "Professional experience as a software engineer and product manager",
+    description:
+      "Professional experience as a software engineer and product manager",
     type: "website",
     url: "https://bengregory.com/work",
   },
@@ -15,19 +17,39 @@ export const metadata: Metadata = {
 export default function Work() {
   let work = [
     {
-      role: "Founder / Solo Dev",
+      role: "Founder",
+      company: "Kasava",
+      year: "2025",
+      link: "https://kasava.dev",
+      summary:
+        "Building an AI-powered development workflow platform focused on GitHub integration and intelligent document processing. \
+        Kasava provides seamless GitHub repository analysis, AI-powered chat interactions, Google Docs integration, and Chrome extension-based bug detection.",
+      key_projects: [
+        "Built backend with Cloudflare Workers, Hono.js, and PostgreSQL with pgvector for semantic search",
+        "Implemented multi-stage queue pipeline architecture for parallel repository indexing (10-30 files/second processing)",
+        "Integrated Mastra framework for AI workflow orchestration with Claude, Gemini, and Vertex AI",
+        "Created AI-powered semantic commit analysis with type classification and impact assessment",
+        "Developed Chrome extension for bug detection with video/screenshot recording and GitHub integration",
+        "Built Next.js frontend with React 19, Tailwind CSS, and real-time streaming responses",
+      ],
+    },
+    {
+      role: "Founder",
       company: "Monroe",
       year: "2024-2025",
       link: "https://joinmonroe.com",
       summary:
-        "Starting with the challenge of building an app end-to-end by myself,\
-        I built Monroe, the Goodreads / Letterboxd for television.",
+        "Built a comprehensive TV show AI platform with microservices architecture, providing intelligent recommendations, content analysis, \
+        and cross-platform user engagement. The Goodreads / Letterboxd for television.",
       key_projects: [
-        "Wrote 80k lines of code",
-        "Built responsive web app with Next.js, Typescript, Tailwind",
-        "Built API w/ Express, Prisma, Node and then rebuilt in Hono, Dribble, and Deno",
-        "Built AI Service w/ Python, TS, PGVector, and OpenAI, powering article classification, transcription, chat interface, and\
-        recommendation engine",
+        "Built backend API with Hono, TypeScript, PostgreSQL/Drizzle, and Redis caching with comprehensive Jest test coverage",
+        "Developed Next.js 15 frontend with React 19, Tailwind CSS, Radix UI, and Jotai state management with Vitest testing",
+        "Created React Native mobile app with Expo for iOS and Android with offline capabilities and push notifications",
+        "Built Electron desktop app for Windows, macOS, and Linux with system tray integration",
+        "Developed Node.js and Python SDKs with TypeScript-first design and comprehensive test coverage",
+        "Implemented AI/ML pipeline with fine-tuned DistilBERT models, AutoGluon, OpenAI GPT, and Anthropic Claude",
+        "Built automated web scraping system for entertainment news from 10+ major outlets with article classification",
+        "Integrated Supabase Auth, Stripe/Paddle billing, and TMDB API for metadata",
       ],
     },
     {
