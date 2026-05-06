@@ -1,156 +1,60 @@
-# CLAUDE.md - Blog Directory
+# CLAUDE.md — Blog
 
-This directory contains the blog system implementation using MDX and Next.js App Router.
+The blog is fully MDX-driven via `next-mdx-remote/rsc`. There is **no registry** to update for new posts.
 
-## Blog Architecture
+## Layout
 
 ```
-blog/
-├── page.tsx              # Blog listing page with hardcoded metadata
-├── [...slug]/           # Dynamic routing for flexible blog paths
-│   ├── page.tsx        # Dynamic MDX rendering
-│   └── layout.tsx      # Blog-specific layout
-└── [post-name]/         # Individual blog post directories
-    ├── page.mdx        # Blog post content in MDX
-    └── layout.tsx      # Optional post-specific layout
+src/app/blog/
+├── page.tsx                # Index: pulls posts via lib/posts, hands to <BlogIndex>
+└── [...slug]/
+    ├── page.tsx            # Renders a post via <MDXRemote source={post.content} />
+    └── layout.tsx          # Wraps post in <ReadingProgress />
+
+src/content/blog/           # Where posts actually live
+├── <slug>.mdx              # Flat post → /blog/<slug>
+└── <series>/<part>.mdx     # Series part → /blog/<series>/<part>
 ```
 
-## Adding a New Blog Post
+## Adding a post
 
-### Step 1: Create Post Directory
-```bash
-mkdir src/app/blog/my-new-post
-```
+1. Create `src/content/blog/<slug>.mdx` (or `<series>/<part>.mdx`).
+2. Add frontmatter (`title`, `date`, `description` are required; `tags`, `series`, `published` are optional):
+   ```mdx
+   ---
+   title: "Post Title"
+   date: 2026-05-01
+   description: "One-line description."
+   tags: ["product", "ai"]
+   series: "Optional Series Name"
+   published: true
+   ---
+   ```
+3. Write the body. Markdown + JSX both work.
 
-### Step 2: Write MDX Content
-Create `page.mdx` with frontmatter and content:
-```mdx
----
-title: "My New Post"
-date: "2025-01-15"
-description: "A brief description"
-tags: ["tech", "web"]
----
+The post auto-appears in `/blog`, the home recent-writing list, the sitemap, and the route-generation step. Nothing else to update.
 
-# My New Post
+## How rendering works
 
-Your content here...
-```
+- `src/lib/posts.ts` walks `src/content/blog/`, parses frontmatter with `gray-matter`, and returns typed `Post[]` (in-process cached).
+- `[...slug]/page.tsx` finds the matching post, renders the editorial header (back link, title, description, mono metadata row, tags), then `<MDXRemote>` for the body.
+- `mdx-components.tsx` overrides custom components (currently just `<img>` to a Next `<Image>`).
+- The blog post layout wraps every post in `<ReadingProgress />`, which is a scroll-linked spring bar at the top of the viewport.
 
-### Step 3: Update Blog Listing
-Edit `src/app/blog/page.tsx` and add to the posts array:
-```typescript
-{
-  title: "My New Post",
-  href: "/blog/my-new-post",
-  description: "A brief description",
-  date: "January 15, 2025",
-  readTime: "5 min read",
-  tags: ["tech", "web"],
-}
-```
+## Frontmatter notes
 
-### Step 4: Update Sitemap
-Edit `src/app/sitemap.ts` and add to blogPosts array:
-```typescript
-{ href: '/blog/my-new-post', date: '2025-01-15' }
-```
+- **`tags` casing matters.** "AI" and "ai" are different tags in the index filter. Pick a casing convention for your tags and stick to it.
+- **`series`** groups parts together. A "More in this series" sidebar auto-renders on every post in the series.
+- **`published: false`** hides a post from listings and 404s the route.
 
-### Step 5: (Optional) Custom Layout
-Create `layout.tsx` for post-specific styling:
-```typescript
-export default function Layout({ children }) {
-  return (
-    <article className="custom-styles">
-      {children}
-    </article>
-  );
-}
-```
+## Styling
 
-## Blog Post Patterns
+Posts inherit the global font/typography. The body is rendered inside `prose prose-neutral` (Tailwind Typography), with custom overrides for headings (uses `font-display`) and links (uses `anim-underline`-adjacent styling).
 
-### Multi-Part Series
-For series like "Building Monroe":
-```
-building_monroe/
-├── layout.tsx     # Shared layout for the series
-├── part_1/
-│   └── page.mdx
-├── part_2/
-│   └── page.mdx
-└── part_3/
-    └── page.mdx
-```
+For images in posts: place files in `public/` and reference with absolute paths (`![alt](/my-image.png)`). The MDX `img` override renders them via Next `<Image>` automatically.
 
-### Custom Fonts
-Blog posts use Montserrat font (defined in layouts):
-```typescript
-const montserrat = Montserrat({ subsets: ["latin"] });
-```
+## Don't
 
-## MDX Components
-
-Custom components are defined in `src/mdx-components.tsx`:
-- Typography elements (h1-h6, p, ul, ol, li)
-- Code blocks with syntax highlighting
-- Links with styling
-- Images with proper spacing
-- Tables with borders
-- Blockquotes with styling
-
-## Blog Listing Page
-
-The `page.tsx` file contains:
-- Hardcoded post metadata array
-- Grid layout for post cards
-- Tag badges
-- Reading time display
-- Hover effects and transitions
-
-## Dynamic Routing
-
-The `[...slug]` directory enables:
-- Flexible URL structures
-- Contentlayer integration
-- Dynamic MDX rendering
-- Fallback handling
-
-## SEO Considerations
-
-Each blog post should have:
-- Unique title in metadata
-- Meta description
-- Open Graph tags
-- Structured data (JSON-LD)
-- Proper heading hierarchy
-
-## Styling Guidelines
-
-1. **Typography**: Use Tailwind Typography plugin
-2. **Spacing**: Consistent padding/margins
-3. **Dark Mode**: Support both light and dark themes
-4. **Mobile**: Responsive design required
-5. **Code Blocks**: Syntax highlighting with proper contrast
-
-## Common Issues
-
-1. **Post not appearing**: Check all three places (page.tsx, sitemap.ts, directory exists)
-2. **MDX errors**: Validate frontmatter format
-3. **Layout issues**: Check parent layout conflicts
-4. **Image loading**: Ensure domains are whitelisted in next.config.js
-
-## Testing Blog Posts
-
-Run tests to verify:
-```bash
-npm test tests/blog.spec.ts
-```
-
-Key test areas:
-- Blog listing displays correctly
-- Individual posts load
-- MDX renders properly
-- Navigation works
-- Mobile responsive
-- SEO tags present
+- Don't create `page.mdx` files inside `src/app/blog/` — the file routing has been removed; all routing is via `[...slug]/page.tsx`.
+- Don't add per-post `layout.tsx` files. The single `[...slug]/layout.tsx` handles all posts.
+- Don't import from `contentlayer/generated`. Contentlayer was removed; use `getAllPosts` / `getPost` from `@/lib/posts`.

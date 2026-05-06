@@ -1,6 +1,4 @@
-import { Montserrat } from "next/font/google";
-
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "700"] });
+import ReadingProgress from "@/components/motion/ReadingProgress";
 
 export default function BlogPostLayout({
   children,
@@ -8,8 +6,9 @@ export default function BlogPostLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className={montserrat.className}>
+    <>
+      <ReadingProgress />
       {children}
-    </div>
+    </>
   );
 }

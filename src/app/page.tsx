@@ -1,146 +1,142 @@
 import Link from "next/link";
-import { ArrowRight, Code2, Rocket, BookOpen, Briefcase } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { format, parseISO } from "date-fns";
+import { ArrowRight } from "lucide-react";
+import FadeUp from "@/components/motion/FadeUp";
+import HoverCard from "@/components/motion/HoverCard";
+import { getAllPosts } from "@/lib/posts";
 
-export default function Home() {
+const FEATURED_PROJECTS = [
+  {
+    name: "Kasava",
+    year: "2025 — present",
+    href: "/projects",
+    pitch:
+      "An AI workflow tool for engineering teams — repo indexing, semantic commit analysis, and a chat that actually knows your codebase.",
+  },
+  {
+    name: "Monroe",
+    year: "2024 — 2025",
+    href: "/projects",
+    pitch:
+      "A TV-show platform with intelligent recommendations across web, mobile, and desktop. The Goodreads for television.",
+  },
+];
+
+export default async function Home() {
+  const posts = (await getAllPosts()).slice(0, 3);
+
   return (
-    <div className="w-full min-h-screen flex flex-col justify-center items-center px-4 sm:px-8">
-      <div className="max-w-4xl w-full space-y-12">
-        {/* Hero Section */}
-        <section className="space-y-6 text-center sm:text-left">
-          <div className="space-y-4">
-            <h1 className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Ben Gregory
-            </h1>
-            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400">
-              Software Engineer & Product Builder
-            </p>
-          </div>
-          
-          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl">
-            Building AI-powered platforms and innovative web applications. 
-            Stanford MBA with expertise in full-stack development, product management, 
-            and scaling startups.
-          </p>
+    <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
+      {/* Hero */}
+      <FadeUp as="section" className="pt-16 sm:pt-24 pb-10">
+        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          Ben Gregory
+        </p>
+        <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+          Engineer, founder, and writer.
+        </h1>
+        <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
+          I&rsquo;m building <Link href={"kasava.dev"} className="text-foreground">Kasava</Link>, an
+          AI workflow tool for engineering teams. Before that I built <Link className="text-foreground" href={"joinmonroe.com"}>Monroe</Link>,
+          was a senior PM on the freight team at <Link className="text-foreground" href={"flexport.com"}>Flexport </Link>  (via Shopify, via
+          Deliverr), and helped build the early platform at Astronomer. Stanford
+          GSB &rsquo;21.
+        </p>
+      </FadeUp>
 
-          <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-            <Button asChild size="lg">
-              <Link href="/projects">
-                <Rocket className="mr-2 h-4 w-4" />
-                View Projects
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/blog">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Read Blog
-              </Link>
-            </Button>
-          </div>
-        </section>
-
-        {/* Quick Links Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link 
-            href="/work" 
-            className="group p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all hover:border-blue-500"
+      {/* Now */}
+      <FadeUp as="section" delay={0.05} className="py-8">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            Now
+          </span>
+          <span className="text-xs text-muted-foreground/70">May 2026</span>
+        </div>
+        <p className="mt-3 max-w-2xl text-base">
+          Shipping Kasava&rsquo;s repo indexing pipeline and writing about what
+          I learn along the way. Open to interesting conversations —{" "}
+          <a
+            href="mailto:benjaminrgregory@gmail.com"
+            className="anim-underline text-foreground"
           >
-            <Briefcase className="h-8 w-8 mb-3 text-blue-600" />
-            <h3 className="font-semibold mb-1 group-hover:text-blue-600 transition-colors">
-              Work Experience
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              From founder to senior PM
-            </p>
-            <ArrowRight className="h-4 w-4 mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
-          </Link>
+            say hi
+          </a>
+          .
+        </p>
+      </FadeUp>
 
-          <Link 
-            href="/projects" 
-            className="group p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all hover:border-purple-500"
+      {/* Selected work */}
+      <FadeUp as="section" delay={0.1} className="py-10">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h2 className="font-display text-lg font-semibold">Selected work</h2>
+          <Link
+            href="/projects"
+            className="anim-underline text-sm text-muted-foreground hover:text-foreground"
           >
-            <Code2 className="h-8 w-8 mb-3 text-purple-600" />
-            <h3 className="font-semibold mb-1 group-hover:text-purple-600 transition-colors">
-              Projects
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              AI platforms & web apps
-            </p>
-            <ArrowRight className="h-4 w-4 mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-purple-600" />
+            All projects
           </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {FEATURED_PROJECTS.map((p) => (
+            <HoverCard key={p.name} href={p.href}>
+              <div className="space-y-2 pr-8">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="font-display text-base font-semibold">
+                    {p.name}
+                  </h3>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    {p.year}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{p.pitch}</p>
+              </div>
+            </HoverCard>
+          ))}
+        </div>
+      </FadeUp>
 
-          <Link 
-            href="/blog" 
-            className="group p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all hover:border-green-500"
+      {/* Recent writing */}
+      <FadeUp as="section" delay={0.15} className="py-10">
+        <div className="mb-5 flex items-baseline justify-between">
+          <h2 className="font-display text-lg font-semibold">Recent writing</h2>
+          <Link
+            href="/blog"
+            className="anim-underline text-sm text-muted-foreground hover:text-foreground"
           >
-            <BookOpen className="h-8 w-8 mb-3 text-green-600" />
-            <h3 className="font-semibold mb-1 group-hover:text-green-600 transition-colors">
-              Blog
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Tech insights & tutorials
-            </p>
-            <ArrowRight className="h-4 w-4 mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-green-600" />
+            All posts
           </Link>
-
-          <Link 
-            href="/education" 
-            className="group p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all hover:border-orange-500"
-          >
-            <svg 
-              className="h-8 w-8 mb-3 text-orange-600" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" 
-              />
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" 
-              />
-            </svg>
-            <h3 className="font-semibold mb-1 group-hover:text-orange-600 transition-colors">
-              Education
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Stanford MBA & more
-            </p>
-            <ArrowRight className="h-4 w-4 mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-orange-600" />
-          </Link>
-        </section>
-
-        {/* Featured Projects Preview */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Featured Projects</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold text-lg mb-2">Kasava</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                AI-powered development workflow platform with GitHub sync and intelligent insights
-              </p>
-              <Link href="/projects" className="text-blue-600 hover:underline text-sm flex items-center">
-                Learn more <ArrowRight className="h-3 w-3 ml-1" />
+        </div>
+        <ul className="divide-y divide-border/60">
+          {posts.map((post) => (
+            <li key={post.url}>
+              <Link
+                href={post.url}
+                className="group flex items-baseline justify-between gap-6 py-3 transition-colors"
+              >
+                <span className="flex items-baseline gap-3 truncate">
+                  <span className="anim-underline truncate text-sm text-foreground">
+                    {post.title}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                  {format(parseISO(post.date), "MMM yyyy")}
+                </span>
               </Link>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold text-lg mb-2">Monroe</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Comprehensive TV show AI platform - the Goodreads for television
-              </p>
-              <Link href="/projects" className="text-blue-600 hover:underline text-sm flex items-center">
-                Learn more <ArrowRight className="h-3 w-3 ml-1" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      </div>
+            </li>
+          ))}
+        </ul>
+      </FadeUp>
+
+      {/* Tail link */}
+      <FadeUp as="div" delay={0.2} className="py-8">
+        <Link
+          href="/work"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          See full work history
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </FadeUp>
     </div>
   );
 }

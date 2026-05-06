@@ -1,55 +1,47 @@
-import { MetadataRoute } from 'next';
+import { MetadataRoute } from "next";
+import { getAllPosts } from "@/lib/posts";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://bengregory.com'; // Update with your actual domain
+const BASE_URL = "https://bengregory.com";
 
-  // Static pages
-  const staticPages = [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticPages: MetadataRoute.Sitemap = [
     {
-      url: baseUrl,
+      url: BASE_URL,
       lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: `${baseUrl}/blog`,
+      url: `${BASE_URL}/blog`,
       lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
+      changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/work`,
+      url: `${BASE_URL}/work`,
       lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/projects`,
+      url: `${BASE_URL}/projects`,
       lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/education`,
+      url: `${BASE_URL}/education`,
       lastModified: new Date(),
-      changeFrequency: 'yearly' as const,
+      changeFrequency: "yearly",
       priority: 0.5,
     },
   ];
 
-  // Blog posts - matching the data from blog/page.tsx
-  const blogPosts = [
-    { href: '/blog/building_monroe/part_1', date: '2025-03-10' },
-    { href: '/blog/building_monroe/part_2', date: '2025-03-10' },
-    { href: '/blog/building_monroe/part_3', date: '2025-03-10' },
-    { href: '/blog/gdc_coplay', date: '2025-03-25' },
-    { href: '/blog/sculpting_code', date: '2025-08-04' },
-    { href: '/blog/open_source_paradox', date: '2025-08-11' },
-    { href: '/blog/claude-code-kasava-one-developer-army', date: '2025-09-10' },
-  ].map((post) => ({
-    url: `${baseUrl}${post.href}`,
+  const posts = await getAllPosts();
+  const blogPosts: MetadataRoute.Sitemap = posts.map((post) => ({
+    url: `${BASE_URL}${post.url}`,
     lastModified: new Date(post.date),
-    changeFrequency: 'monthly' as const,
+    changeFrequency: "monthly",
     priority: 0.7,
   }));
 

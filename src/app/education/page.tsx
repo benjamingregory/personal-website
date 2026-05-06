@@ -1,60 +1,81 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ArrowUpRight } from "lucide-react";
+import FadeUp from "@/components/motion/FadeUp";
 
 export const metadata: Metadata = {
   title: "Education",
-  description: "Educational background including MBA from Stanford Graduate School of Business, Venture for America Fellowship, and undergraduate degree.",
+  description:
+    "Stanford GSB MBA, Venture for America Fellowship, BA Economics from Washington University in St. Louis.",
   openGraph: {
-    title: "Education | Ben Gregory",
-    description: "Educational background including Stanford MBA and Venture for America Fellowship",
+    title: "Education · Ben Gregory",
+    description: "Stanford GSB, Venture for America, Washington University",
     type: "website",
     url: "https://bengregory.com/education",
   },
 };
 
-export default function Education() {
-  let education = [
-    {
-      degree: "MBA",
-      school: "Stanford Graduate School of Business",
-      year: "2019-2021",
-      award: "USA Fellow (Full Scholarship)",
-      link: "https://www.gsb.stanford.edu",
-    },
-    {
-      degree: "Fellow",
-      school: "Venture for America",
-      year: "2013-2015",
-      award: "2nd Class of Fellows",
-      link: "https://ventureforamerica.org",
-    },
-    {
-      degree: "BA, Economics",
-      school: "Washington University in St. Louis",
-      year: "2009-2013",
-      award: "Magna Cum Laude",
-      link: "https://economics.wustl.edu",
-    },
-  ];
+const SCHOOLS = [
+  {
+    degree: "MBA",
+    school: "Stanford Graduate School of Business",
+    year: "2019 — 2021",
+    award: "USA Fellow (Full Scholarship)",
+    link: "https://www.gsb.stanford.edu",
+  },
+  {
+    degree: "Fellow",
+    school: "Venture for America",
+    year: "2013 — 2015",
+    award: "2nd Class of Fellows",
+    link: "https://ventureforamerica.org",
+  },
+  {
+    degree: "BA, Economics",
+    school: "Washington University in St. Louis",
+    year: "2009 — 2013",
+    award: "Magna Cum Laude",
+    link: "https://economics.wustl.edu",
+  },
+];
 
+export default function Education() {
   return (
-    <div className="flex w-full h-screen w-full justify-center pt-4 sm:pt-24">
-      <div className="w-[80%] max-w-[600px] space-y-6 flex flex-col divide-y-2 item-between">
-        {education.map((item, idx) => (
-          <div key={idx} className="pt-6">
-            <div className="flex items-center">
-              <span className="font-bold text-lg">{item.degree}</span>
-              <span className="text-sm">&nbsp;-&nbsp;{item.award}</span>
-            </div>
-            <div className="hover:font-bold">
-              <Link href={item.link} target="_blank">
-                {item.school}
-              </Link>
-            </div>
-            <div>{item.year}</div>
-          </div>
+    <div className="mx-auto w-full max-w-3xl px-5 pb-16 pt-12 sm:px-8 sm:pt-16">
+      <FadeUp as="header" className="mb-10">
+        <h1 className="font-display text-3xl font-semibold sm:text-4xl">
+          Education
+        </h1>
+      </FadeUp>
+
+      <ul className="divide-y divide-border/60">
+        {SCHOOLS.map((s, i) => (
+          <FadeUp key={s.school} delay={i * 0.05} as="div">
+            <li className="grid gap-1 py-6 sm:grid-cols-[160px_1fr] sm:gap-8">
+              <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground sm:pt-1">
+                {s.year}
+              </div>
+              <div className="space-y-1">
+                <div className="font-display text-lg font-semibold">
+                  {s.degree}
+                  <span className="ml-2 font-sans text-xs font-normal text-muted-foreground">
+                    {s.award}
+                  </span>
+                </div>
+                <Link
+                  href={s.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="anim-underline inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  {s.school}
+                  <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </li>
+          </FadeUp>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

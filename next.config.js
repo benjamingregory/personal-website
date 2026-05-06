@@ -1,12 +1,12 @@
-const { withContentlayer } = require("next-contentlayer");
-const withMDX = require("@next/mdx")();
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
+  pageExtensions: ["js", "jsx", "ts", "tsx"],
   images: {
-    domains: ["www.youtube.com", "img.youtube.com"],
+    remotePatterns: [
+      { protocol: "https", hostname: "www.youtube.com" },
+      { protocol: "https", hostname: "img.youtube.com" },
+    ],
   },
 };
 
-module.exports = withContentlayer(withMDX(nextConfig));
+module.exports = nextConfig;

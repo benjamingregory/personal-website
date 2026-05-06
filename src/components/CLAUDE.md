@@ -1,108 +1,47 @@
-# CLAUDE.md - Components Directory
+# CLAUDE.md — Components
 
-This directory contains reusable React components for the personal website.
+Reusable React components. Most pages compose these; never duplicate component logic across pages.
 
-## Component Structure
+## Layout
 
 ```
 components/
-├── DarkModeToggle.tsx  # Dark mode toggle functionality
-├── JsonLd.tsx          # Structured data for SEO
-└── ui/                 # shadcn/ui components
-    ├── badge.tsx       # Badge component
-    ├── button.tsx      # Button component
-    └── card.tsx        # Card component
+├── Header.tsx              # Sticky top nav (client) — sole navigation surface
+├── Footer.tsx              # Single footer (server) — visible on all viewports
+├── JsonLd.tsx              # Structured-data wrappers (server)
+├── motion/                 # Motion primitives (all client; see motion/CLAUDE.md scope below)
+└── ui/                     # shadcn/ui primitives — Button, Card, Badge
 ```
 
-## Component Guidelines
+## Motion primitives
 
-### DarkModeToggle
-- Client component (`"use client"`)
-- Manages dark mode state in localStorage
-- Respects system preference as default
-- Uses Lucide icons (Sun/Moon)
+Each is "use client" and respects `prefers-reduced-motion`. Import the runtime from `motion/react` (the renamed Framer Motion).
 
-### JsonLd
-- Server component for structured data
-- Generates JSON-LD schema for SEO
-- Used in blog posts and pages
+| Component | Purpose | When to use |
+|---|---|---|
+| `FadeUp` | Fade + 12px upward translate on viewport enter, once | Wrap any major page section |
+| `PageTransition` | Fade keyed on pathname for route changes | Already wired in root layout |
+| `AnimatedThemeToggle` | Sun/moon swap with rotate+scale | Already wired in `Header` |
+| `HoverCard` | Card lift + arrow nudge on hover | Project cards, blog teasers |
+| `StackToggle` | Animated expand/collapse for "show full stack" | Projects page |
+| `ReadingProgress` | Scroll-linked spring progress bar | Blog post layout (already wired) |
+| `BlogIndex` | Tag filter with FLIP layout animation on the post list | Blog index (already wired) |
+| `SectionScrollSpy` | On-page TOC w/ animated active marker | Optional — not currently wired |
 
-### UI Components (shadcn/ui)
-- Based on Radix UI primitives
-- Styled with Tailwind CSS
-- Use class-variance-authority for variants
-- Follow compound component pattern where applicable
+## Conventions
 
-## Adding New Components
+- **Server first.** Default to server components. Add `"use client"` only if you need state, effects, browser APIs, or motion hooks.
+- **Semantic tokens only.** Use `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`. Never raw `gray-*` or `bg-white`.
+- **Single hover effect per element.** Don't combine lift + color + scale.
+- **Reduced motion.** Wrap motion patterns with `useReducedMotion()` and provide a no-motion fallback.
+- **Fonts.** Use `font-sans` (Inter, body), `font-display` (Outfit, headings), `font-mono` (JetBrains Mono, dates/labels).
+- **Animated underline.** For text links use `anim-underline` utility (defined in `globals.css`) — preferred over default underline.
 
-1. **Naming Convention**: Use PascalCase for component files
-2. **Location**: 
-   - Page-specific components: Keep in the page directory
-   - Shared components: Place in this directory
-   - UI primitives: Add to `ui/` subdirectory
+## Don't add
 
-3. **TypeScript**: Always define proper types for props
-4. **Styling**: Use Tailwind utilities with cn() helper from `@/lib/utils`
-5. **Client Components**: Only use `"use client"` when necessary (state, effects, event handlers)
+- Sparkle icons (`Sparkles`, `WandSparkles`, etc.) — banned. Communicate "AI" via copy or behavior.
+- Gradient text on titles or hero.
+- Magnetic/cursor-following hover effects, scroll-jacked sections, parallax.
+- Multi-icon-per-element compositions.
 
-## Component Patterns
-
-### Variant Pattern (using CVA)
-```typescript
-const variants = cva("base-classes", {
-  variants: {
-    variant: {
-      default: "default-classes",
-      secondary: "secondary-classes",
-    },
-    size: {
-      sm: "small-classes",
-      md: "medium-classes",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "md",
-  },
-});
-```
-
-### Compound Components
-```typescript
-const Card = ({ children }) => <div>{children}</div>;
-const CardHeader = ({ children }) => <div>{children}</div>;
-const CardContent = ({ children }) => <div>{children}</div>;
-
-Card.Header = CardHeader;
-Card.Content = CardContent;
-```
-
-## Accessibility
-
-- Always include proper ARIA labels
-- Ensure keyboard navigation works
-- Test with screen readers when possible
-- Use semantic HTML elements
-
-## Dark Mode Support
-
-All components should support dark mode:
-- Use `dark:` prefix for dark mode styles
-- Test appearance in both modes
-- Consider contrast ratios
-
-## Performance
-
-- Minimize client components
-- Use React.memo for expensive renders
-- Lazy load heavy components
-- Optimize re-renders with proper dependencies
-
-## Testing Components
-
-When testing components:
-1. Test user interactions
-2. Verify accessibility attributes
-3. Check responsive behavior
-4. Test dark mode variants
-5. Validate TypeScript types
+See `DESIGN_PRINCIPLES.md` at the repo root for the full ruleset.
