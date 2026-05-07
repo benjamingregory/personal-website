@@ -30,6 +30,10 @@ src/app/
 ├── work/page.tsx           # Server — timeline of roles
 ├── projects/page.tsx       # Server — full project rows + animated stack toggle
 ├── education/page.tsx      # Server — typographic list
+├── chat/page.tsx           # Server shell that renders the AI-clone chat (see "Chat" below)
+├── api/
+│   ├── chat/route.ts       # Mastra agent → AI SDK v5 streaming response
+│   └── tts/route.ts        # ElevenLabs streaming TTS proxy
 └── blog/
     ├── page.tsx            # Server — pulls posts, hands to <BlogIndex>
     └── [...slug]/
@@ -90,6 +94,51 @@ All motion primitives respect `prefers-reduced-motion` via `useReducedMotion()` 
 3. Write the body. Markdown + JSX both work; use `<Image>` for images via the override in `mdx-components.tsx`.
 
 That's it. The post auto-appears in `/blog`, the home recent-writing list, the sitemap, and `generateStaticParams`. No registry to update, no per-post layout to write.
+
+## Chat (AI clone)
+
+The `/chat` page hosts a voice-enabled AI clone of Ben. Architecture:
+
+```
+src/mastra/
+├── index.ts                 # Mastra instance + Ben agent (lazy singleton)
+├── persona.ts               # Builds the system prompt from context/*.md + blog index
+└── context/
+    ├── boundaries.md        # Hard rules — overrides everything else
+    ├── bio.md               # Career, education, where I'm from
+    ├── voice.md             # How I talk (register, phrases, anti-tells)
+    ├── topics.md            # What to engage / what to deflect
+    └── opinions.md          # Specific points of view to represent
+
+src/app/api/
+├── chat/route.ts            # POST → handleChatStream({mastra, agentId:'ben'}) → createUIMessageStreamResponse
+└── tts/route.ts             # POST {text} → ElevenLabs streaming mp3
+
+src/components/chat/
+└── ChatInterface.tsx        # "use client" — useChat from @ai-sdk/react, mic via Web Speech API, per-sentence TTS playback
+```
+
+- LLM: Mastra agent on `anthropic/claude-sonnet-4-6` (model router string — `@mastra/core` reads `ANTHROPIC_API_KEY` automatically).
+- Guardrails: `PromptInjectionDetector` + `ModerationProcessor` from `@mastra/core/processors` run as `inputProcessors` on each request, both backed by Claude Haiku 4.5 (one extra Anthropic call each — minor latency + cost trade for safety on a public surface).
+- Streaming: `@mastra/ai-sdk`'s `handleChatStream` + `ai` v6's `createUIMessageStreamResponse`. Client uses `useChat` with `DefaultChatTransport`.
+- Voice in: browser-native `SpeechRecognition` (Chrome/Safari/Edge). Falls back to text input where unsupported.
+- Voice out: as text streams, sentences are extracted and POSTed to `/api/tts` which proxies ElevenLabs streaming TTS. Audio elements are queued and played sequentially. Mute toggle in the chat header drains the queue.
+- Persona system prompt is built once per process and cached.
+- The `boundaries.md` file is loaded first so its rules anchor the prompt.
+
+### Required env vars (set in Vercel + `.env.local`)
+
+```
+ANTHROPIC_API_KEY=
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+```
+
+See `.env.example` for the canonical list.
+
+### Editing the persona
+
+Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds on next process start; in dev that's the next request after a server restart.
 
 ## Conventions
 

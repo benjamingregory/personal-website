@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mic } from "lucide-react";
 import FadeUp from "@/components/motion/FadeUp";
 import HoverCard from "@/components/motion/HoverCard";
 import { getAllPosts } from "@/lib/posts";
@@ -42,6 +42,26 @@ export default async function Home() {
           Deliverr), and helped build the early platform at Astronomer. Stanford
           GSB &rsquo;21.
         </p>
+
+        <div className="mt-8">
+          <Link
+            href="/chat"
+            className="group inline-flex items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm transition-colors hover:border-foreground/40 hover:bg-muted"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors group-hover:border-foreground/40 group-hover:text-foreground">
+              <Mic className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex flex-col">
+              <span className="font-medium text-foreground">
+                Chat with an AI clone of me
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Voice in, voice out — trained on my writing.
+              </span>
+            </span>
+            <ArrowRight className="ml-2 h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </Link>
+        </div>
       </FadeUp>
 
       {/* Now */}
