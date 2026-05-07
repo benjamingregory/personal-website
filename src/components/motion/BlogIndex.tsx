@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { format, parseISO } from "date-fns";
+import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type IndexPost = {
@@ -13,7 +14,9 @@ export type IndexPost = {
   date: string;
   series?: string;
   tags?: string[];
-  readingMinutes: number;
+  readingMinutes?: number;
+  external?: boolean;
+  source?: string;
 };
 
 const ALL = "All";
@@ -77,19 +80,22 @@ export default function BlogIndex({
               exit={reduced ? undefined : { opacity: 0 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Link
-                href={post.url}
-                className="group block py-5 transition-colors"
-              >
+              <PostLink post={post}>
                 <div className="flex items-baseline justify-between gap-6">
                   <div className="min-w-0 space-y-1">
-                    {post.series && (
+                    {(post.series || post.source) && (
                       <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {post.series}
+                        {post.source ?? post.series}
                       </div>
                     )}
                     <h2 className="font-display text-base font-semibold">
                       <span className="anim-underline">{post.title}</span>
+                      {post.external && (
+                        <ArrowUpRight
+                          aria-hidden
+                          className="ml-1 inline h-3.5 w-3.5 -translate-y-px text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        />
+                      )}
                     </h2>
                     <p className="line-clamp-2 text-sm text-muted-foreground">
                       {post.description}
@@ -99,9 +105,11 @@ export default function BlogIndex({
                     <div className="font-mono text-[11px] text-muted-foreground">
                       {format(parseISO(post.date), "MMM d, yyyy")}
                     </div>
-                    <div className="font-mono text-[10px] text-muted-foreground/70">
-                      {post.readingMinutes} min
-                    </div>
+                    {post.readingMinutes && (
+                      <div className="font-mono text-[10px] text-muted-foreground/70">
+                        {post.readingMinutes} min
+                      </div>
+                    )}
                   </div>
                 </div>
                 {post.tags && post.tags.length > 0 && (
@@ -116,7 +124,7 @@ export default function BlogIndex({
                     ))}
                   </div>
                 )}
-              </Link>
+              </PostLink>
             </motion.li>
           ))}
         </AnimatePresence>
@@ -135,5 +143,32 @@ export default function BlogIndex({
         </div>
       )}
     </div>
+  );
+}
+
+function PostLink({
+  post,
+  children,
+}: {
+  post: IndexPost;
+  children: React.ReactNode;
+}) {
+  const className = "group block py-5 transition-colors";
+  if (post.external) {
+    return (
+      <a
+        href={post.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={post.url} className={className}>
+      {children}
+    </Link>
   );
 }

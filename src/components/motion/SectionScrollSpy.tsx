@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { animate, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 type Item = { id: string; label: string };
@@ -15,27 +15,57 @@ export default function SectionScrollSpy({
 }) {
   const [active, setActive] = useState<string>(items[0]?.id ?? "");
   const reduced = useReducedMotion();
+  const lockedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
+    const compute = () => {
+      if (lockedRef.current) return;
+      const offset = 120;
+      let current = items[0]?.id ?? "";
+      for (const item of items) {
+        const el = document.getElementById(item.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - offset <= 0) current = item.id;
+        else break;
+      }
+      setActive(current);
+    };
 
-    items.forEach((item) => {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+    compute();
+    window.addEventListener("scroll", compute, { passive: true });
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+    };
   }, [items]);
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (!el) return;
+    const target = el.getBoundingClientRect().top + window.scrollY - 96;
+    history.pushState(null, "", `#${id}`);
+    setActive(id);
+    lockedRef.current = true;
+
+    if (reduced) {
+      window.scrollTo(0, target);
+      lockedRef.current = false;
+      return;
+    }
+
+    animate(window.scrollY, target, {
+      duration: 0.7,
+      ease: [0.32, 0.72, 0, 1],
+      onUpdate: (latest) => window.scrollTo(0, latest),
+      onComplete: () => {
+        lockedRef.current = false;
+      },
+    });
+  };
 
   return (
     <nav
@@ -49,6 +79,7 @@ export default function SectionScrollSpy({
             <li key={item.id}>
               <a
                 href={`#${item.id}`}
+                onClick={(e) => handleClick(e, item.id)}
                 className={cn(
                   "relative block py-1 transition-colors",
                   isActive

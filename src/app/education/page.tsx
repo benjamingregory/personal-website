@@ -28,7 +28,7 @@ const SCHOOLS = [
     school: "Venture for America",
     year: "2013 — 2015",
     award: "2nd Class of Fellows",
-    link: "https://ventureforamerica.org",
+    link: "https://emberfellows.org",
   },
   {
     degree: "BA, Economics",

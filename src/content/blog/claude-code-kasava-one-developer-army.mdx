@@ -9,8 +9,6 @@ If you told me a year ago that I'd be single-handedly managing a sophisticated A
 
 Yet here I am, running Kasava entirely on my own. The secret? Claude Code – and a borderline obsessive approach to leveraging it.
 
-<br />
-
 ## The Setup That Changed Everything
 
 Let me paint you a picture of my typical morning. I sit down with my coffee, open my terminal, and spin up not one, not two, but sometimes **eight concurrent instances of Claude Code**. Yes, eight. Each one focused on a different aspect of the system:
@@ -26,8 +24,6 @@ Let me paint you a picture of my typical morning. I sit down with my coffee, ope
 
 It sounds chaotic, but it's actually beautifully orchestrated. Each Claude instance operates in its own git worktree, allowing them to work independently without stepping on each other's toes. When Instance #3 discovers a bug in the API while working on the Chrome extension, it creates a GitHub issue. Instance #1, monitoring the backend, picks it up and fixes it. Meanwhile, Instance #5 is already writing tests for the fix.
 
-<br />
-
 ## The Power of Pattern Recognition
 
 Here's where Claude Code really shines – its ability to identify and systematically implement patterns across a codebase. Last week, I needed to refactor our entire error handling system. In the old days, this would have taken me days of mind-numbing find-and-replace operations, likely missing edge cases and introducing subtle bugs.
@@ -36,15 +32,11 @@ With Claude Code? I showed it the new error handling pattern in one file, and it
 
 The kicker? It took 20 minutes. And the tests still passed.
 
-<br />
-
 ## Bug Squashing at Warp Speed
 
 Bugs are where Claude Code truly feels like having a senior developer sitting next to you. When our parallel repository indexing system started throwing timeout errors under load, I could have spent hours diving through logs, adding debug statements, and slowly narrowing down the issue.
 
 Instead, I fed Claude the error logs, pointed it at the relevant code, and asked it to investigate. It immediately identified a race condition in our Durable Objects coordination logic that only manifested when processing repositories with more than 10,000 files. The fix was surgical – a simple mutex implementation in the right place. Total time from bug report to deployed fix: 35 minutes.
-
-<br />
 
 ## MCP: The Integration Game-Changer
 
@@ -62,8 +54,6 @@ The Supabase integration is equally powerful. Claude can query our database, und
 
 But here's the thing about MCP that took me a while to learn – **simpler is often better**. While MCP servers are powerful, I've found that well-documented CLI tools often work more reliably. That's why we still use `gh` for GitHub operations and direct SQL for complex queries. MCP shines for exploration and standard operations, but when you need fine control, traditional tools still have their place.
 
-<br />
-
 ## The Art of Context Management
 
 If there's one thing that separates good Claude Code usage from great, it's context management. We maintain **64 separate CLAUDE.md files** throughout the Kasava codebase. Yes, you read that right – 64.
@@ -78,8 +68,6 @@ These aren't just documentation – they're living instructions that Claude auto
 
 The real magic happens with our `/update` command – a custom command that uses subagents to keep all these files current. Every few days, I run it, and specialized agents update each CLAUDE.md file based on recent changes in their domains. The `CLAUDE_FILES_INDEX.md` tracks when each was last updated, ensuring nothing gets stale.
 
-<br />
-
 ## Templates and GitHub Issues: Defining Before Building
 
 One of my best decisions was creating a comprehensive PRD (Product Requirements Document) template and enforcing its use through our `/issues` command. When I have an idea for a new feature, I don't just start coding. I run `/issues`, and Claude:
@@ -90,8 +78,6 @@ One of my best decisions was creating a comprehensive PRD (Product Requirements 
 4. Assigns appropriate labels and links related issues
 
 This discipline has saved me from countless rabbit holes. When you're a solo developer, it's easy to lose sight of the big picture. Having Claude enforce this structure keeps me honest and ensures every feature is well-thought-out before implementation.
-
-<br />
 
 ## The Monorepo Advantage
 
@@ -107,8 +93,6 @@ When I'm adding a new API endpoint, Claude can:
 
 All in one conversation, all with full understanding of how the pieces fit together.
 
-<br />
-
 ## Subagents: Avoiding Context Window Limits
 
 Even with Claude's generous 200,000 token context window, large tasks can hit limits. That's where subagents become crucial. Our `/work` command is a perfect example – when working on a complex GitHub issue, it spawns specialized agents for different aspects:
@@ -119,8 +103,6 @@ Even with Claude's generous 200,000 token context window, large tasks can hit li
 - Documentation agent for updates
 
 Each agent operates with focused context, reporting back to the main conversation. This approach lets us tackle issues that would otherwise overflow the context window.
-
-<br />
 
 ## The Reality Check: What to Watch For
 
@@ -134,8 +116,6 @@ The lesson? Sometimes Claude needs to be told: "Just fix this manually, don't wr
 
 **The Permission Fatigue**: Initially, I was approving every single file read and write. It was exhausting. Now I've configured specific operations to auto-approve (like reading files and running tests), while keeping dangerous operations (like deployments) manual. The `--allowedTools` flag is your friend.
 
-<br />
-
 ## The Results Speak for Themselves
 
 Since fully embracing Claude Code as my development partner, Kasava has:
@@ -147,8 +127,6 @@ Since fully embracing Claude Code as my development partner, Kasava has:
 - Passed SOC 2 Type I audit requirements
 
 All with one developer. Me.
-
-<br />
 
 ## Best Practices I Live By
 
@@ -163,8 +141,6 @@ All with one developer. Me.
 9. **Keep it simple** - When Claude wants to build a complex solution, ask if there's a simpler way
 10. **Document patterns** - When you find something that works, document it for Claude to learn
 
-<br />
-
 ## Looking Forward
 
 As I write this, I'm experimenting with even more advanced workflows. I'm building custom Mastra agents that can coordinate multiple Claude instances automatically. I'm exploring ways to have Claude automatically update its own context based on repository changes. I'm even looking at having Claude review its own PRs before I do.
@@ -172,8 +148,6 @@ As I write this, I'm experimenting with even more advanced workflows. I'm buildi
 The traditional wisdom says you need a team to build something like Kasava. But with Claude Code, the definition of "team" is evolving. I may be one developer, but with eight Claude instances running in parallel, each specialized and focused, I've got the output of a small engineering organization.
 
 The future isn't about replacing developers – it's about amplifying them. And right now, I feel pretty amplified.
-
-<br />
 
 ## The Tools That Make It Possible
 
@@ -188,8 +162,6 @@ If you're looking to replicate this setup, here's my exact stack:
 - **Git Worktrees**: For parallel development
 - **CLAUDE.md Files**: 64 and counting
 - **Templates**: PRD, API routes, test suites
-
-<br />
 
 ## Final Thoughts
 

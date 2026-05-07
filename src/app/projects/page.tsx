@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import FadeUp from "@/components/motion/FadeUp";
 import StackToggle from "@/components/motion/StackToggle";
+import ProjectMedia, { type ProjectMediaConfig } from "@/components/ProjectMedia";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -25,9 +26,100 @@ type Project = {
   link: string;
   primaryStack: string[];
   fullStack: Record<string, string[]>;
+  media?: ProjectMediaConfig;
 };
 
 const PROJECTS: Project[] = [
+  {
+    name: "Kasava",
+    year: "2025 — present",
+    pitch: "AI workflow tool for engineering teams.",
+    body: "Kasava connects engineering teams' GitHub repos to a multi-stage indexing pipeline (10–30 files/sec into Postgres + pgvector), a multi-agent system that orchestrates Anthropic Claude, Google Gemini, and Voyage embeddings for code analysis, two-way sync with 15+ task platforms, and a Chrome extension that captures bug context — video, console, network, DOM — and drafts a root-cause writeup before filing the GitHub issue.",
+    site: "kasava.dev",
+    link: "https://kasava.dev",
+    primaryStack: [
+      "Cloudflare Workers",
+      "Hono",
+      "Postgres + pgvector",
+      "Mastra",
+      "Anthropic",
+      "Next.js",
+    ],
+    fullStack: {
+      Frontend: ["Next.js", "React", "Tailwind", "shadcn", "Framer Motion"],
+      Backend: [
+        "Cloudflare Workers",
+        "Hono",
+        "Postgres + pgvector",
+        "Multi-stage queue pipeline",
+      ],
+      "AI/ML": [
+        "Anthropic Claude",
+        "Google Gemini",
+        "Vertex AI",
+        "Voyage embeddings",
+        "Mastra agents + workflows",
+        "Vercel AI SDK",
+      ],
+      Extension: [
+        "Chrome MV3",
+        "Video / DOM / network / console capture",
+        "Gemini 1.5 Pro writeup",
+      ],
+      Integrations: ["GitHub", "15+ task platforms"],
+    },
+    media: {
+      slug: "kasava",
+      altPrefix: "Kasava",
+      alts: {
+        hero: "Kasava workspace",
+        "2": "Kasava commit and code analysis view",
+        "3": "Kasava bug-capture Chrome extension",
+      },
+    },
+  },
+  {
+    name: "Monroe",
+    year: "2024 — 2025",
+    pitch: "Goodreads for television.",
+    body: "Monroe is a TV-show platform with intelligent recommendations and an AI companion that remembers your viewing history. Built across web (Next.js 16), mobile (React Native + Expo), and desktop (Electron), all on a shared Hono API on Cloudflare Workers. A scraping pipeline pulls from 20+ entertainment outlets and uses gpt-4o-mini to classify article types and extract show references.",
+    site: "joinmonroe.com",
+    link: "https://joinmonroe.com",
+    primaryStack: [
+      "Next.js 16",
+      "React Native",
+      "Electron",
+      "Cloudflare Workers",
+      "Hono",
+      "Mastra",
+    ],
+    fullStack: {
+      Web: ["Next.js 16", "React 19", "Tailwind"],
+      Mobile: ["React Native", "Expo"],
+      Desktop: ["Electron"],
+      Backend: ["Hono", "Cloudflare Workers", "Postgres", "Drizzle"],
+      "AI/ML": [
+        "Anthropic Claude",
+        "OpenAI",
+        "gpt-4o-mini classification",
+        "Mastra agents",
+      ],
+      Pipeline: [
+        "20+ outlet scrapers",
+        "Article-type classification",
+        "Show extraction",
+      ],
+    },
+    media: {
+      slug: "monroe",
+      altPrefix: "Monroe",
+      alts: {
+        hero: "Monroe library and recent activity",
+        "2": "Monroe show detail with critic match",
+        "3": "Monroe episode calendar",
+      },
+    },
+  },
   {
     name: "Jobflow",
     year: "2026 — present",
@@ -58,6 +150,13 @@ const PROJECTS: Project[] = [
         "Vercel AI SDK",
       ],
       Infrastructure: ["Supabase Auth + RLS", "Firecrawl"],
+    },
+    media: {
+      slug: "jobflow",
+      altPrefix: "Jobflow",
+      alts: {
+        hero: "Jobflow match dashboard",
+      },
     },
   },
   {
@@ -98,6 +197,13 @@ const PROJECTS: Project[] = [
         "OpenAPI / Drizzle fixture gen",
       ],
       Tooling: ["Turbo monorepo", "Changesets", "MDX docs"],
+    },
+    media: {
+      slug: "demokit",
+      altPrefix: "Demokit",
+      alts: {
+        hero: "Demokit cloud dashboard",
+      },
     },
   },
   {
@@ -152,17 +258,7 @@ export default function Projects() {
                 </Link>
               </div>
 
-              {/* Visual placeholder for screenshot — TODO: replace with real screenshot */}
-              <div
-                aria-hidden
-                className="relative aspect-[16/9] overflow-hidden rounded-lg border border-border/70 bg-gradient-to-br from-muted/40 to-muted/10"
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-display text-5xl font-semibold tracking-tight text-foreground/20">
-                    {project.name}
-                  </span>
-                </div>
-              </div>
+              <ProjectMedia config={project.media} priority={i === 0} />
 
               {/* Pitch + body */}
               <div className="space-y-3">

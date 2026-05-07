@@ -1,24 +1,32 @@
 ---
 title: "Seven Caches Deep: The Deceptively Hard Problem of Making a TV-Tracking App Fast."
 date: 2026-05-06
-description: "Building a TV tracker that stays fast looks like CRUD from the outside. From the inside, every click is a cascade — and keeping it sub-300ms takes seven layers of cache and a neurotic obsession with the contract between them."
+description: "Building a TV tracker that stays fast looks like CRUD from the outside. From the inside, every click is a cascade; and keeping it sub-300ms takes seven layers of cache and a neurotic obsession with the contract between them."
 tags: ["engineering", "performance", "caching", "monroe", "architecture"]
 published: true
 ---
 
 There's a question on Monroe that looks trivial: *what's the next episode I should watch?*
 
-A user looks at a show, sees "Up next: S3E4," clicks it, marks it watched, and moves on. Three hundred milliseconds, end-to-end. They don't think about it. Which is exactly the point — they're not supposed to.
+A user looks at a show, sees "Up next: S3E4," clicks it, marks it watched, and moves on. Three hundred milliseconds,
+end-to-end. They don't think about it. Which is exactly the point; they're not supposed to.
 
-What they don't see is that "what's next" is a four-table join that depends on which episodes you've watched, which episodes have aired, which season-episode tuple immediately follows your highest-watched one, and a fallback path for users who skipped ahead and are now caught up past their own progress point. They don't see that marking the episode watched kicks off a cascade of recomputations: was that the last episode of the season? The last unwatched episode of the show? Did this just promote the show from "In Progress" to "Completed"? Does the sidebar need to re-sort? Does the dashboard need a new "next up" tile? Do the recommendations change?
+What they don't see is that "what's next" is a four-table join that depends on which episodes you've watched, which
+episodes have aired, which season-episode tuple immediately follows your highest-watched one, and a fallback path for
+users who skipped ahead and are now caught up past their own progress point. They don't see that marking the episode
+watched kicks off a cascade of recomputations: was that the last episode of the season? The last unwatched episode of
+the show? Did this just promote the show from "In Progress" to "Completed"? Does the sidebar need to re-sort? Does the
+dashboard need a new "next up" tile? Do the recommendations change?
 
 They see a checkmark. We do all of the above, in the time it takes them to blink.
 
-This post is about how we got there — and, honestly, how much harder it was than I expected when I started.
+This post is about how we got there; and, honestly, how much harder it was than I expected when I started.
 
 ## A genuinely hard data problem hiding inside a simple-looking app
 
-I started Monroe because I love TV and I wanted a tracker that didn't feel like it was actively fighting me. I figured the data model would be straightforward: shows have seasons, seasons have episodes, users mark stuff watched. How hard could it be?
+I started Monroe because I love TV and I wanted a tracker that didn't feel like it was actively fighting me. I figured
+the data model would be straightforward: shows have seasons, seasons have episodes, users mark stuff watched. How hard
+could it be?
 
 Then I actually built it.
 
@@ -26,12 +34,18 @@ Here's what a moderately active Monroe user looks like in the database:
 
 - Hundreds of shows in their library, each in one of several states (queued, in progress, completed, archived, stale).
 - Each show is also in a *separate* status from a metadata standpoint: returning, ended, canceled, in production, pilot.
-- Each show has dozens of episodes — often hundreds for long-running ones — each with its *own* user state (watched / not watched / liked / rated) and its *own* metadata state (aired / not yet aired / special / unknown air date).
-- Each show carries cast, crew, creators, writers, directors, executive producers — with role weights, episode counts, and per-show involvement percentages we use for similarity scoring.
-- Each user has watch history, viewing patterns, session detection, binge frequency, average days between episodes, preferred viewing hours.
-- And on top of all of that we layer derived data: "what's next" per show and across all shows, show-completion percentages, genre breakdowns, recommendations, AI-generated personal match insights, AI-synthesized critic summaries, talent connections to other shows.
+- Each show has dozens of episodes; often hundreds for long-running ones; each with its *own* user state (watched /
+  not watched / liked / rated) and its *own* metadata state (aired / not yet aired / special / unknown air date).
+- Each show carries cast, crew, creators, writers, directors, executive producers; with role weights, episode counts,
+  and per-show involvement percentages we use for similarity scoring.
+- Each user has watch history, viewing patterns, session detection, binge frequency, average days between episodes,
+  preferred viewing hours.
+- And on top of all of that we layer derived data: "what's next" per show and across all shows, show-completion
+  percentages, genre breakdowns, recommendations, AI-generated personal match insights, AI-synthesized critic summaries,
+  talent connections to other shows.
 
-Multiply: hundreds of shows × dozens of episodes × user state × global state × derived calculations × every other user the recommendation engine cross-references. The combinatorics get ugly fast.
+Multiply: hundreds of shows × dozens of episodes × user state × global state × derived calculations × every other user
+the recommendation engine cross-references. The combinatorics get ugly fast.
 
 And critically, almost none of these states are independent. They cascade.
 
@@ -42,54 +56,81 @@ Here's a real example. A user clicks "Mark Season 3 as Watched" on a show with t
 Naively, that's twelve writes. In practice, it's:
 
 1. Twelve `UserEpisode` inserts (one per episode), batched into a single API call so we don't make twelve round trips.
-2. A check against the show's `numberOfEpisodes` to see if the user has now watched *every* episode of the show. If yes, the `UserShow.watched` flag flips to `true` and `completedAt` gets stamped.
-3. A check on the *opposite* direction too — if the user was previously at zero watched episodes, the show transitions from "Queued" to "In Progress" (`started = true`).
-4. The "next up" episode for this show changes, which means the dashboard's "next up across all shows" widget might also change.
-5. The user's stats — watch time, completion rate, viewing patterns, genre breakdown, completions by month — are now stale.
-6. The sidebar show list has to re-sort and possibly re-section (Completed shows live in a different group from In Progress).
-7. If this completion triggers a milestone (10 shows finished, 100 episodes this month, etc.), email reminders and notification queues need to know.
-8. The recommendation engine uses watch velocity — how fast you're moving through shows — as a signal. Velocity just changed.
+2. A check against the show's `numberOfEpisodes` to see if the user has now watched *every* episode of the show. If yes,
+   the `UserShow.watched` flag flips to `true` and `completedAt` gets stamped.
+3. A check on the *opposite* direction too; if the user was previously at zero watched episodes, the show transitions
+   from "Queued" to "In Progress" (`started = true`).
+4. The "next up" episode for this show changes, which means the dashboard's "next up across all shows" widget might also
+   change.
+5. The user's stats; watch time, completion rate, viewing patterns, genre breakdown, completions by month; are now
+   stale.
+6. The sidebar show list has to re-sort and possibly re-section (Completed shows live in a different group from In
+   Progress).
+7. If this completion triggers a milestone (10 shows finished, 100 episodes this month, etc.), email reminders and
+   notification queues need to know.
+8. The recommendation engine uses watch velocity; how fast you're moving through shows; as a signal. Velocity just
+   changed.
 
 A single click. Eight knock-on effects. And every one of them touches a different surface in the UI.
 
-If you do all of that synchronously, the user clicks a checkbox and waits two seconds for the spinner. If you do it lazily, the sidebar shows the wrong section for fifteen minutes. Both are wrong.
+If you do all of that synchronously, the user clicks a checkbox and waits two seconds for the spinner. If you do it
+lazily, the sidebar shows the wrong section for fifteen minutes. Both are wrong.
 
-This is the deceptive part. From the outside, "tv tracker" sounds like CRUD. From the inside, every action is a cascade, and the user expects every consequence to render *now*.
+This is the deceptive part. From the outside, "tv tracker" sounds like CRUD. From the inside, every action is a cascade,
+and the user expects every consequence to render *now*.
 
 ## What going the wrong way feels like
 
-Before I start sounding like I figured this out from first principles, I should be clear: I figured it out from watching every other tracker fail at it. Here's the thing — users *will* tell you when it's broken. They'll tell you in great detail.
+Before I start sounding like I figured this out from first principles, I should be clear: I figured it out from watching
+every other tracker fail at it. Here's the thing; users *will* tell you when it's broken. They'll tell you in great
+detail.
 
 A TV Time user posted last December:
 
-> "I've been using it since before version 4. And it was lightning fast, very simple and easy to use!... I've been waiting for the damn watch list to open for like 3 minutes now... I have s24 ultra so it's not a phone issue, it handles all other apps like a champ."
-> — [r/TVTime](https://www.reddit.com/r/TVTime/comments/1h4dhiu/why_has_this_app_become_so_slow/)
+> "I've been using it since before version 4. And it was lightning fast, very simple and easy to use!... I've been
+> waiting for the damn watch list to open for like 3 minutes now... I have s24 ultra so it's not a phone issue, it
+> handles all other apps like a champ."
+>; [r/TVTime](https://www.reddit.com/r/TVTime/comments/1h4dhiu/why_has_this_app_become_so_slow/)
 
-A flagship Galaxy. Three-minute watch list load. This is the kind of failure mode that makes you cancel, and the user is dead-right that it isn't their phone.
+A flagship Galaxy. Three-minute watch list load. This is the kind of failure mode that makes you cancel, and the user is
+dead-right that it isn't their phone.
 
 This complaint is not an outlier. Another TV Time user, this April:
 
-> "After 5 years, I finally got a new phone. Great CPU, 12 GB RAM + 12 GB virtual RAM... I figured I'd finally have a smooth experience using TV Time. Sometimes it takes half a minute, sometimes it takes forever. It's tiring. Been using it for 10 years or more, but it seems like it's gotten worse in performance instead of better/faster."
-> — [r/TVTime](https://www.reddit.com/r/TVTime/comments/1t2dk28/is_the_app_always_slow_as_hell_anyone_else/)
+> "After 5 years, I finally got a new phone. Great CPU, 12 GB RAM + 12 GB virtual RAM... I figured I'd finally have a
+> smooth experience using TV Time. Sometimes it takes half a minute, sometimes it takes forever. It's tiring. Been using
+> it for 10 years or more, but it seems like it's gotten worse in performance instead of better/faster."
+>; [r/TVTime](https://www.reddit.com/r/TVTime/comments/1t2dk28/is_the_app_always_slow_as_hell_anyone_else/)
 
-Worse, the slowness gets in the way of the core action — logging an episode:
+Worse, the slowness gets in the way of the core action; logging an episode:
 
-> "It takes ages to mark things as read and be able to actually read posts/comments under episodes. It's such a drag that sometime I just don't log my watched stuff because I don't want to waste time waiting the app to load."
-> — [r/TVTime](https://www.reddit.com/r/TVTime/comments/1g3mkgx/am_i_unlucky_or_is_tv_time_really_slow_in_the/)
+> "It takes ages to mark things as read and be able to actually read posts/comments under episodes. It's such a drag
+> that sometime I just don't log my watched stuff because I don't want to waste time waiting the app to load."
+>; [r/TVTime](https://www.reddit.com/r/TVTime/comments/1g3mkgx/am_i_unlucky_or_is_tv_time_really_slow_in_the/)
 
-Read that one twice. The app is so slow at the one job it has — recording what you watched — that the user has stopped using it. There is no greater product failure than the user actively giving up on the loop you built the whole thing around.
+Read that one twice. The app is so slow at the one job it has; recording what you watched; that the user has stopped
+using it. There is no greater product failure than the user actively giving up on the loop you built the whole thing
+around.
 
-Trakt has the same shape of problem. A long-time user with a 12,700-item watched history reports list loads measured in *minutes* ([r/Addons4Kodi](https://www.reddit.com/r/Addons4Kodi/comments/1l6ksta/trakt_lists_slow_to_load_in_pov_seren_and/)). And Serializd's own developer admitted publicly when their numbers grew that "the app generally being slow this week... it's because a massive number of people have joined Serializd and the systems are overloaded" ([r/Serializd](https://www.reddit.com/r/Serializd/comments/1i3o8j8/anyone_else_having_a_lot_of_issues_with_the_app/)).
+Trakt has the same shape of problem. A long-time user with a 12,700-item watched history reports list loads measured in
+*minutes*
+([r/Addons4Kodi](https://www.reddit.com/r/Addons4Kodi/comments/1l6ksta/trakt_lists_slow_to_load_in_pov_seren_and/)). And
+Serializd's own developer admitted publicly when their numbers grew that "the app generally being slow this week... it's
+because a massive number of people have joined Serializd and the systems are overloaded"
+([r/Serializd](https://www.reddit.com/r/Serializd/comments/1i3o8j8/anyone_else_having_a_lot_of_issues_with_the_app/)).
 
-The pattern repeats. The app is fast for new users. It degrades as accumulated history grows. By year five, your most loyal customers — the ones who've actually been using the thing — are the ones for whom it works worst.
+The pattern repeats. The app is fast for new users. It degrades as accumulated history grows. By year five, your most
+loyal customers; the ones who've actually been using the thing; are the ones for whom it works worst.
 
 That is a brutal failure mode. The customers you should be rewarding are the ones you've punished the hardest.
 
-I went into Monroe certain I was going to avoid this trap. I will tell you, candidly, that I was not certain I knew *how* to avoid it.
+I went into Monroe certain I was going to avoid this trap. I will tell you, candidly, that I was not certain I knew
+*how* to avoid it.
 
 ## Seven caches deep
 
-What I did not appreciate when I started is that there is no single cache layer that solves this. There are seven, and they each do a different job. Skip any one of them and a class of slowness creeps back in.
+What I did not appreciate when I started is that there is no single cache layer that solves this. There are seven, and
+they each do a different job. Skip any one of them and a class of slowness creeps back in.
 
 Here's the stack as it exists today:
 
@@ -106,87 +147,158 @@ Browser ←→ [IndexedDB] ←→ TanStack Query ←→ TanStack DB Collections
                         PostgreSQL (Drizzle ORM)
 ```
 
-Let me walk through what each one is actually doing, and — more importantly — why I needed it.
+Let me walk through what each one is actually doing, and; more importantly; why I needed it.
 
-**Layer 1 — Postgres with dedicated user-state tables.** This is the boring foundation. `UserShow` and `UserEpisode` are first-class tables, not blob columns hanging off a Show. That sounds obvious, but it means I can index every dimension a query ever cares about: per-user latest watched season-episode tuple, per-show watched count, per-month completions. The "next episode" SQL alone is a 50-line CTE that uses `DISTINCT ON` to find each user's latest-watched per show, then joins forward to find the next aired-but-unwatched. None of this works if user state is denormalized.
+**Layer 1; Postgres with dedicated user-state tables.** This is the boring foundation. `UserShow` and `UserEpisode` are
+first-class tables, not blob columns hanging off a Show. That sounds obvious, but it means I can index every dimension a
+query ever cares about: per-user latest watched season-episode tuple, per-show watched count, per-month completions. The
+"next episode" SQL alone is a 50-line CTE that uses `DISTINCT ON` to find each user's latest-watched per show, then
+joins forward to find the next aired-but-unwatched. None of this works if user state is denormalized.
 
-**Layer 2 — Cloudflare KV at the API edge.** Every router in the API extends a `BaseRouter` class that handles caching for free, with TTLs tuned per resource: 5 minutes for shows and episodes, 30 minutes for collections, 15 minutes for stats, 1 hour for articles, 1 minute for billing. The KV adapter has stampede protection — when ten clients miss the same key concurrently, only one DB query fires and the rest wait on an in-flight promise. This is invisible 95% of the time and saves the database from getting flattened the other 5%.
+**Layer 2; Cloudflare KV at the API edge.** Every router in the API extends a `BaseRouter` class that handles caching
+for free, with TTLs tuned per resource: 5 minutes for shows and episodes, 30 minutes for collections, 15 minutes for
+stats, 1 hour for articles, 1 minute for billing. The KV adapter has stampede protection; when ten clients miss the
+same key concurrently, only one DB query fires and the rest wait on an in-flight promise. This is invisible 95% of the
+time and saves the database from getting flattened the other 5%.
 
-**Layer 3 — Server-side prefetch on the Next.js root layout.** When an authenticated user hits *any* route, seven queries fire in parallel server-side via `Promise.allSettled`: user profile, watched episodes, sidebar show list, collections, next episodes, dashboard, essential dashboard. Those get dehydrated into the page and hydrate client-side instantly. There is no waterfall on first paint, ever. You see the sidebar populated before you see the spinner.
+**Layer 3; Server-side prefetch on the Next.js root layout.** When an authenticated user hits *any* route, seven
+queries fire in parallel server-side via `Promise.allSettled`: user profile, watched episodes, sidebar show list,
+collections, next episodes, dashboard, essential dashboard. Those get dehydrated into the page and hydrate client-side
+instantly. There is no waterfall on first paint, ever. You see the sidebar populated before you see the spinner.
 
-**Layer 4 — TanStack Query on the client.** Server cache for non-DB queries (stats, dashboard, search, billing). Stale times are stratified: 30 seconds for real-time stuff like notifications, 1 minute for active content, 5 minutes for collections, 10 minutes for static metadata. Window-focus refetching is *off* — I don't want the app to stutter every time you alt-tab back.
+**Layer 4; TanStack Query on the client.** Server cache for non-DB queries (stats, dashboard, search, billing). Stale
+times are stratified: 30 seconds for real-time stuff like notifications, 1 minute for active content, 5 minutes for
+collections, 10 minutes for static metadata. Window-focus refetching is *off*; I don't want the app to stutter every
+time you alt-tab back.
 
-**Layer 5 — IndexedDB persistence, per query.** This is the one I wrestled with the longest. TanStack Query's cache is persisted to IndexedDB via `experimental_createQueryPersister` so that a returning user sees their library *immediately* on cold load, before the network round-trip even fires. We persist per-query, not as a single blob — which means a write is O(1) and a read is lazy. Sensitive or real-time keys (billing, search, anything time-windowed like "today" or "upcoming") are explicitly excluded so we don't ship stale or sensitive data into a slow background tab. On logout, IndexedDB gets nuked.
+**Layer 5; IndexedDB persistence, per query.** This is the one I wrestled with the longest. TanStack Query's cache is
+persisted to IndexedDB via `experimental_createQueryPersister` so that a returning user sees their library *immediately*
+on cold load, before the network round-trip even fires. We persist per-query, not as a single blob; which means a write
+is O(1) and a read is lazy. Sensitive or real-time keys (billing, search, anything time-windowed like "today" or
+"upcoming") are explicitly excluded so we don't ship stale or sensitive data into a slow background tab. On logout,
+IndexedDB gets nuked.
 
-**Layer 6 — TanStack DB.** This is the newest piece, added in March 2026, and it changed everything. TanStack DB gives me four normalized reactive collections — `userEpisodes`, `userShows`, `shows`, `episodes` — with built-in optimistic mutations and automatic rollback if the API call fails. Live queries (`useWatchedEpisodeIds`, `useShowProgress`, `useEpisodeCountByShow`) return reactive views that re-render only the components that actually depend on the changed data. When a user clicks "watched," the local collection updates *synchronously*, the UI re-renders before the network packet leaves the device, and if the API fails the rollback is automatic.
+**Layer 6; TanStack DB.** This is the newest piece, added in March 2026, and it changed everything. TanStack DB gives
+me four normalized reactive collections; `userEpisodes`, `userShows`, `shows`, `episodes`; with built-in optimistic
+mutations and automatic rollback if the API call fails. Live queries (`useWatchedEpisodeIds`, `useShowProgress`,
+`useEpisodeCountByShow`) return reactive views that re-render only the components that actually depend on the changed
+data. When a user clicks "watched," the local collection updates *synchronously*, the UI re-renders before the network
+packet leaves the device, and if the API fails the rollback is automatic.
 
-This is what kills the "is my click registering?" problem. It always registers. Latency happens, but it happens in the background.
+This is what kills the "is my click registering?" problem. It always registers. Latency happens, but it happens in the
+background.
 
-**Layer 7 — Hover and viewport prefetch hooks.** When you hover over a show card for 200ms, we prefetch the show, its seasons, and its episodes in parallel. When a card scrolls into view (with a 100px margin via IntersectionObserver), we prefetch once. By the time you click, the data is already in TanStack Query. This is the cheapest performance win in the whole stack and feels like magic when it works.
+**Layer 7; Hover and viewport prefetch hooks.** When you hover over a show card for 200ms, we prefetch the show, its
+seasons, and its episodes in parallel. When a card scrolls into view (with a 100px margin via IntersectionObserver), we
+prefetch once. By the time you click, the data is already in TanStack Query. This is the cheapest performance win in the
+whole stack and feels like magic when it works.
 
-That's seven layers. They are not redundant. Each one closes a specific gap that opens up when you remove it. Take out the Cloudflare KV layer and the database falls over under load. Take out IndexedDB and cold loads regress to network speed. Take out TanStack DB and clicks feel laggy. Take out the prefetch hooks and the show page has a visible loading state on first hover. Take out server-side prefetch and the first paint shows skeletons everywhere.
+That's seven layers. They are not redundant. Each one closes a specific gap that opens up when you remove it. Take out
+the Cloudflare KV layer and the database falls over under load. Take out IndexedDB and cold loads regress to network
+speed. Take out TanStack DB and clicks feel laggy. Take out the prefetch hooks and the show page has a visible loading
+state on first hover. Take out server-side prefetch and the first paint shows skeletons everywhere.
 
 I tried to skip layers. I always added them back.
 
 ## The bug that taught me the most
 
-Architecture diagrams make this all sound clean. The reality involved a bug that took me an embarrassingly long time to figure out.
+Architecture diagrams make this all sound clean. The reality involved a bug that took me an embarrassingly long time to
+figure out.
 
-Here's the setup. The sidebar is one of the most visible UI elements on Monroe — it shows your shows grouped by state (Queued, In Progress, Completed). The sidebar reads from a TanStack Query cache called `userShowsList`, which is a deliberately-minimal projection of the full user-show records.
+Here's the setup. The sidebar is one of the most visible UI elements on Monroe; it shows your shows grouped by state
+(Queued, In Progress, Completed). The sidebar reads from a TanStack Query cache called `userShowsList`, which is a
+deliberately-minimal projection of the full user-show records.
 
 When the user marks an episode watched, two things need to happen:
 
 1. The TanStack DB `userShows` collection updates (so live queries everywhere on the page re-render).
-2. The TanStack Query `userShowsList` cache *also* updates (so the sidebar moves the show from "In Progress" to "Completed").
+2. The TanStack Query `userShowsList` cache *also* updates (so the sidebar moves the show from "In Progress" to
+   "Completed").
 
-These are two different data structures. They contain overlapping information. They are both correct, but they are not the same.
+These are two different data structures. They contain overlapping information. They are both correct, but they are not
+the same.
 
-For a while, only #1 was happening. The user would mark the last episode of a show watched, the show page would update instantly (great!), but the sidebar would still show the show under "In Progress" until the next refetch (terrible). It looked like a sync bug. It *was* a sync bug, but the fix wasn't to merge the two caches — it was to keep them in sync explicitly.
+For a while, only #1 was happening. The user would mark the last episode of a show watched, the show page would update
+instantly (great!), but the sidebar would still show the show under "In Progress" until the next refetch (terrible). It
+looked like a sync bug. It *was* a sync bug, but the fix wasn't to merge the two caches; it was to keep them in sync
+explicitly.
 
-That's what `cacheSync.ts` does. After every show mutation, we patch the `userShowsList` query cache via `setQueryData` with the same change we just made to the TanStack DB collection. Two writes, one source of truth, both surfaces consistent.
+That's what `cacheSync.ts` does. After every show mutation, we patch the `userShowsList` query cache via `setQueryData`
+with the same change we just made to the TanStack DB collection. Two writes, one source of truth, both surfaces
+consistent.
 
-The lesson: **the moment you have multiple caches, your real product is the consistency contract between them.** Forget that contract and you'll have a fast app that quietly lies to its users.
+The lesson: **the moment you have multiple caches, your real product is the consistency contract between them.** Forget
+that contract and you'll have a fast app that quietly lies to its users.
 
-This is also where I think most trackers go wrong. They're not slow because they don't cache — they're slow because their caches *disagree*, and resolving the disagreement requires invalidating everything and refetching everything, and now the user is waiting on a 12,700-row history again.
+This is also where I think most trackers go wrong. They're not slow because they don't cache; they're slow because
+their caches *disagree*, and resolving the disagreement requires invalidating everything and refetching everything, and
+now the user is waiting on a 12,700-row history again.
 
 ## Web vs. mobile: not the same problem
 
-A friend asked me recently why the mobile build couldn't just reuse the web cache architecture. Reasonable question. Wrong answer.
+A friend asked me recently why the mobile build couldn't just reuse the web cache architecture. Reasonable question.
+Wrong answer.
 
-On the web, my cache budget is generous. IndexedDB on a desktop browser will happily hold tens of megabytes of normalized show data without complaint. Memory is plentiful. The user usually has the tab open for one session and closes it — there's no persistent background pressure.
+On the web, my cache budget is generous. IndexedDB on a desktop browser will happily hold tens of megabytes of
+normalized show data without complaint. Memory is plentiful. The user usually has the tab open for one session and
+closes it; there's no persistent background pressure.
 
-On mobile, the constraints flip. iOS will quietly evict your IndexedDB when memory gets tight. Backgrounded apps on Android can lose state on a kernel whim. Battery and cellular cost matter — every prefetch that doesn't pay off is a tax on the user's data plan. And the JS heap on a low-end Android device is dramatically smaller than a desktop Chromium tab. You can't just dump 200 shows × 60 episodes into memory and trust the GC.
+On mobile, the constraints flip. iOS will quietly evict your IndexedDB when memory gets tight. Backgrounded apps on
+Android can lose state on a kernel whim. Battery and cellular cost matter; every prefetch that doesn't pay off is a tax
+on the user's data plan. And the JS heap on a low-end Android device is dramatically smaller than a desktop Chromium
+tab. You can't just dump 200 shows × 60 episodes into memory and trust the GC.
 
-So the mobile architecture is a trimmed cousin: smaller working set, more aggressive eviction, less aggressive prefetch, longer-lived TTLs on the API side because the device cache is less reliable. Same backend, different client tradeoffs.
+So the mobile architecture is a trimmed cousin: smaller working set, more aggressive eviction, less aggressive prefetch,
+longer-lived TTLs on the API side because the device cache is less reliable. Same backend, different client tradeoffs.
 
-It's tempting, when you've solved a hard problem on one platform, to assume the solution generalizes. It doesn't. The web's cache layers are about latency hiding. Mobile's are about graceful degradation. These are different problems wearing similar clothes.
+It's tempting, when you've solved a hard problem on one platform, to assume the solution generalizes. It doesn't. The
+web's cache layers are about latency hiding. Mobile's are about graceful degradation. These are different problems
+wearing similar clothes.
 
 ## What still keeps me up
 
 The honest version of this post is that I don't think I'm done. A few things still bug me:
 
-**Cache invalidation across users.** When a show updates upstream (TMDB pushes a new episode), every user who follows that show needs their `nextEpisode` cache invalidated. Today this is per-cron-cycle, not real-time. It's fine. It's not great.
+**Cache invalidation across users.** When a show updates upstream (TMDB pushes a new episode), every user who follows
+that show needs their `nextEpisode` cache invalidated. Today this is per-cron-cycle, not real-time. It's fine. It's not
+great.
 
-**Cold starts for the long tail.** A user who hasn't logged in for two months hits IndexedDB with stale data, then waits on the full re-prefetch. I'd like that to feel as fast as a hot return. It doesn't yet.
+**Cold starts for the long tail.** A user who hasn't logged in for two months hits IndexedDB with stale data, then waits
+on the full re-prefetch. I'd like that to feel as fast as a hot return. It doesn't yet.
 
-**Recommendation freshness vs. compute cost.** Every time a user marks a show complete, their taste profile shifts subtly. Recomputing recommendations on every mutation is wasteful. Recomputing nightly means recommendations lag your actual taste by a day. I haven't found a great middle.
+**Recommendation freshness vs. compute cost.** Every time a user marks a show complete, their taste profile shifts
+subtly. Recomputing recommendations on every mutation is wasteful. Recomputing nightly means recommendations lag your
+actual taste by a day. I haven't found a great middle.
 
-**The two-layer cache trap I mentioned earlier.** I caught it once. I'm sure I'll introduce it again. Every time I add a new derived view of show data, I have to ask: which other caches contain a projection of this, and what's the contract between them? It's the kind of thing that should have a linter.
+**The two-layer cache trap I mentioned earlier.** I caught it once. I'm sure I'll introduce it again. Every time I add a
+new derived view of show data, I have to ask: which other caches contain a projection of this, and what's the contract
+between them? It's the kind of thing that should have a linter.
 
-**Mobile memory ceilings.** I have an Android device that periodically drops the IndexedDB cache. The web app doesn't notice. The mobile app does. I have not finished hardening for it.
+**Mobile memory ceilings.** I have an Android device that periodically drops the IndexedDB cache. The web app doesn't
+notice. The mobile app does. I have not finished hardening for it.
 
 ## The point
 
-The thing I've come around to believing is that performance in a tracker app isn't a single problem you solve — it's a property you maintain by composing many small caches and being neurotic about the contract between them.
+The thing I've come around to believing is that performance in a tracker app isn't a single problem you solve; it's a
+property you maintain by composing many small caches and being neurotic about the contract between them.
 
-If there's a thesis here, it's this: *every state change in a TV tracker is a cascade*. The data model is small but densely connected. Mark one episode watched, and a dozen things might need to recompute. The job of an architecture like this is to make sure the cheap consequences happen instantly (optimistic local update), the medium consequences happen in the background (cache patches, completion checks), and the expensive consequences happen lazily (full recomputes of stats, recommendations) — without the user ever noticing the difference.
+If there's a thesis here, it's this: *every state change in a TV tracker is a cascade*. The data model is small but
+densely connected. Mark one episode watched, and a dozen things might need to recompute. The job of an architecture like
+this is to make sure the cheap consequences happen instantly (optimistic local update), the medium consequences happen
+in the background (cache patches, completion checks), and the expensive consequences happen lazily (full recomputes of
+stats, recommendations); without the user ever noticing the difference.
 
-When you read a Reddit thread of someone waiting three minutes for their watch list, what they're describing isn't really slowness. It's a system that punted every consequence into the user's lap. Every click is a cache miss that becomes a database scan that becomes a 30-second redraw. It's the architecture making the user pay for laziness.
+When you read a Reddit thread of someone waiting three minutes for their watch list, what they're describing isn't
+really slowness. It's a system that punted every consequence into the user's lap. Every click is a cache miss that
+becomes a database scan that becomes a 30-second redraw. It's the architecture making the user pay for laziness.
 
-The whole point of this seven-layer stack is to make sure the user never has to pay that bill. Which, honestly, when it works, is the most satisfying thing in software.
+The whole point of this seven-layer stack is to make sure the user never has to pay that bill. Which, honestly, when it
+works, is the most satisfying thing in software.
 
 Now if you'll excuse me, I have an episode of *The Bear* to mark watched. Should take about 300ms.
 
 ---
 
-*Monroe is my pop-culture companion app. If you've ever wished there were a Letterboxd for TV, that's what I'm building. You can find me on [LinkedIn](https://www.linkedin.com/in/benjamin-gregory/), or, if you'd rather just see the result, the app is at joinmonroe.com.*
+*Monroe is my pop-culture companion app. If you've ever wished there were a Letterboxd for TV, that's what I'm building.
+You can find me on [LinkedIn](https://www.linkedin.com/in/benjamin-gregory/), or, if you'd rather just see the result,
+the app is at joinmonroe.com.*

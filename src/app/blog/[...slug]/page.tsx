@@ -6,7 +6,9 @@ import type { Metadata } from "next";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { mdxComponents } from "@/mdx-components";
 import { BlogPostJsonLd } from "@/components/JsonLd";
+import SectionScrollSpy from "@/components/motion/SectionScrollSpy";
 import { getAllPosts, getAllSlugs, getPost } from "@/lib/posts";
+import { extractHeadings } from "@/lib/toc";
 
 interface BlogPostProps {
   params: Promise<{ slug: string[] }>;
@@ -58,6 +60,8 @@ export default async function BlogPost({ params }: BlogPostProps) {
         .sort((a, b) => a.url.localeCompare(b.url))
     : [];
 
+  const headings = extractHeadings(post.content);
+
   return (
     <>
       <BlogPostJsonLd
@@ -66,16 +70,17 @@ export default async function BlogPost({ params }: BlogPostProps) {
         date={post.date}
         url={`https://bengregory.com${post.url}`}
       />
+      <div className="relative mx-auto max-w-7xl">
       <article className="mx-auto w-full max-w-2xl px-5 pb-16 pt-12 sm:px-8 sm:pt-16">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground xl:hidden"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span className="anim-underline">Back to blog</span>
         </Link>
 
-        <header className="mt-8 space-y-4">
+        <header className="mt-8 space-y-4 xl:mt-0">
           {post.series && (
             <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
               {post.series}
@@ -136,6 +141,26 @@ export default async function BlogPost({ params }: BlogPostProps) {
           </aside>
         )}
       </article>
+      <aside className="absolute left-4 top-0 hidden h-full w-56 xl:block">
+        <div className="sticky top-24 pt-12">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="anim-underline">Back to blog</span>
+          </Link>
+          {headings.length > 1 && (
+            <>
+              <div className="mb-3 mt-10 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                On this page
+              </div>
+              <SectionScrollSpy items={headings} />
+            </>
+          )}
+        </div>
+      </aside>
+      </div>
     </>
   );
 }

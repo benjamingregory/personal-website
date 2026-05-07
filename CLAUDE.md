@@ -8,6 +8,8 @@ Personal site — bengregory.com. Editorial portfolio + blog. Next.js 16 (App Ro
 
 Design intent is documented in [DESIGN_PRINCIPLES.md](./DESIGN_PRINCIPLES.md). Read it before making visual changes.
 
+Copy voice and banned phrasing live in [LANGUAGE_PATTERNS.md](./LANGUAGE_PATTERNS.md). Read it before writing or editing any user-facing text — hero copy, headlines, blog posts, MDX bodies, metadata, CTAs, persona context. Run the `grep` checks in that file before declaring text work done.
+
 ## Commands
 
 - `npm run dev` — start Turbopack dev server on http://localhost:3000
@@ -146,6 +148,7 @@ Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds
 - `@/*` path alias is the only one in `tsconfig.json`.
 - Don't add gradients, raw color hex, or shadcn defaults masquerading as design — the design language is editorial. See `DESIGN_PRINCIPLES.md`.
 - For new motion: respect §9 of the principles — band between Linear marketing and rauno.me, never crossing into magnetic/cursor/scroll-jack territory.
+- For any user-facing copy, follow `LANGUAGE_PATTERNS.md` — banned words, banned filler openers ("Here's the thing", "Let's be honest", etc.), and the required moves (name the artifact, mechanism follows claim, sparingly em-dash).
 
 ## Testing
 

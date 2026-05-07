@@ -11,7 +11,7 @@ published: true
     <p lang="en" dir="ltr">
       You know what the biggest problem with pushing all-things-AI is? Wrong
       direction.
-      <br />I want AI to do my laundry and dishes so that I can do art and writing,
+     I want AI to do my laundry and dishes so that I can do art and writing,
       not for AI to do my art and writing so that I can do my laundry and dishes.
     </p>
     &mdash; Joanna Maciejewska (MoSS is on preorder now!) (@AuthorJMac)
@@ -26,7 +26,6 @@ published: true
   charset="utf-8"
 ></script>
 
-<br />
 
 There's an understandable tension between creative tools and automation. There
 is a legitimate fear that AI flattens creativity, making everything look the same.
@@ -34,12 +33,10 @@ This fear is not without merit but it can also cause industries like gaming to b
 late adopters to tech that could otherwise help solve widespread problems, such as the overreliance
 of crunch (i.e. unpaid overtime), a problem so bad [there's even a Wikipedia article about it](<https://en.wikipedia.org/wiki/Crunch_(video_games)>).
 
-<br />
 There has to be a solution and to see what companies are developing in this space,
 I decided to attend GDC 2025 last week. Several companies are leveraging AI in game
 development in exciting ways but there’s one I really wanted to highlight.
 
-<br />
 ### Coplay: The Cursor for Game Development
 
 Coplay has developed a chat interface plugin for game engines (currently supporting Unity,
@@ -49,20 +46,16 @@ levels from scratch, complete with physics and combat mechanics.
 
 Rather than try to explain it myself, I'll let them do it:
 
-<br />
 [![alt text](https://img.youtube.com/vi/ipcNw4CVGiM/0.jpg)](https://www.youtube.com/watch?v=ipcNw4CVGiM)
-<br />
 After their presentation, I had the opportunity to discuss the product's future with
 [Joned Sarwar](https://www.linkedin.com/in/joned-sarwar-59055827/), co-founder and
 CTO. Our conversation sparked some interesting ideas about where this technology
 could evolve.
 
-<br />
 
 _Note: The following represents my own vision for the technology's potential, not
 necessarily Coplay's roadmap. They may disagree with all this entirely._
 
-<br />
 ### Level 1 – Vibe Game Development
 
 The “vibe” moniker can be polarizing; people kind of have a kneejerk reaction to it as either a revolutionary
@@ -71,7 +64,6 @@ the middle. For both early learning and rapid prototyping, the ability to stay i
 the flow, I do have to say, is game changing and Jos showed a great demo
 where he showed this in practice.
 
-<br />
 Creating boilerplate menus, tweaking settings without having to dig through five
 levels of customization options, adding scripting logic for character interactions,
 and even physics to collisions and movement -- all of this stuff is trivial to do
@@ -80,7 +72,6 @@ to be a hit with both new developers who have a fuzzy vision of what they want b
 don't necessarily know how to get there and experienced developers who know exactly
 what they want and don’t want to spend time clicking through menus to get there.
 
-<br />
 ### Level 2 - Agentic Game Development
 
 From their experience building games, the team at Coplay clearly knows that devs
@@ -93,7 +84,6 @@ of what you're asking and avoid hallucinating and creating something totally far
 This is where I think Coplay could really shine. Imagine a world where you have
 a team of agents who are trained on accomplishing specific tasks.
 
-<br />
 Agents could specialize in scene development (e.g. Create a shader for a rainy day
 scene with reflective puddles and dark clouds), asset creation (e.g. Generate a dense,
 overgrown forest with varied terrain, ancient ruins, and soft, diffused lighting.),
@@ -105,7 +95,6 @@ can already do with integrations into Meshy and Tripo for asset creation. Once A
 are intialized with proper context, they could work together to take the seed of
 a game that is tightly tuned and build out new levels, variations on existing levels,
 or even entirely new games in the same style.
-<br />
 
 ### Level 3 -- Abstracted Game Development
 
@@ -119,9 +108,7 @@ In this version, however, the game engine becomes secondary to the translation
 layer (in this case Coplay) and game development as a feature can become as
 easy as embedding a chat or drag-and-drop interface with an iframe representing the Scene / Game View.
 
-<br />
 This may sound kinda far-fetched but there are two analogues that come to mind here.
-<br />
 
 #### 1. Model Abstraction in AI Feature Development
 
@@ -138,7 +125,6 @@ allow developers to focus on the game they want to create. What's more, Coplay c
 offer a set of primitives that encapsulate Unity workflows / logic that can then be used
 by other companies to develop their own Roblox-like platforms.
 
-<br />
 #### 2. Native Code Abstraction in React Native
 
 React Native enables cross-platform development through a write-once, deploy-everywhere framework.
@@ -152,7 +138,6 @@ into a single environment but that's not to say that it’s the final form of ga
 development. Unity / Unreal (the native source) may be the right tool for the job
 eventually for pixel-perfect clarity but not for prototyping and quick iteration.
 
-<br />
 
 ### Remaining Thoughts
 
@@ -160,7 +145,6 @@ With the high-level vision out of the way, I wanted to dive into some of the tec
 challenges that Coplay will need to overcome to reach these levels of abstraction. I
 think there are two broad areas that Coplay will need to focus on to succeed.
 
-<br />
 #### Intelligent Context Management
 
 Modern games comprise thousands
@@ -174,10 +158,8 @@ near real-time to feel like a true extension of the developer. And while it does
 necessarily, it does need to be able to justify it's own existence so throwing more resources at it
 isn't the solution if the cost becomes prohibitive.
 
-<br />
 Advanced techniques might include:
 
-<br />
 _-Persistent context on high-level project architecture_
 
 _-Graph-based representation of project components that maps relationships_
@@ -186,7 +168,6 @@ _-Dynamic context windowing that focuses on relevant files and relationships_
 
 _-Specialized agents trained for relevant context retrieval_
 
-<br />
 #### Autonomous Agent Governance
 
 Coplay comes with variable settings for the extent to which the AI should make changes to your project (e.g.
@@ -195,7 +176,6 @@ The question becomes then that if you have a team of agents working on a project
 independently, how do you ensure changes made by these agents are in line with the vision of the project?
 For that, I think there are three necessary features (which, by the way, they may already be working on, not sure):
 
-<br />
 **1. Version Control** - This is a must-have for any project but especially for one
 where multiple agents are making changes. There already is [Unity Version Control](https://unity.com/solutions/version-control)
 but imagine being able to see the agent's [chain-of-thought](https://arxiv.org/abs/2201.11903),
@@ -205,17 +185,14 @@ With this version control for generative AI, agents can create as many permutati
 of a project as desired and the developer can choose the one that best fits their
 vision.
 
-<br />
 AI-specific versioning would incorporate:
 
-<br />
 
 - The agent's chain-of-thought reasoning for each significant change
 - Decision points where development could have followed multiple paths
 - The ability to branch from specific decision points to explore alternative implementations
 - Metadata about contextual factors influencing decisions
 
-<br />
 
 **2. Agentic Permissions** - Like any external developer that you would grant system access to,
 there need to be guardrails of what resources the AI can access and what it can do with them.
@@ -226,17 +203,14 @@ being able to to give specific permissions and motivations to agents helps simul
 You can easily imagine a system where one agent responsible for asset creation is given more leeway to
 experiment with new styles and techniques while another agent responsible for combat mechanics is
 given more strict guidelines to follow.
+A sophisticated permission system might:
 
-<br />A sophisticated permission system might:
-
-<br />
 
 - Assign specific capabilities and restrictions to different agent types
 - Create domain-specific permissions (e.g., visual assets versus gameplay mechanics)
 - Implement graduated autonomy that increases as agents demonstrate reliability
 - Establish approval workflows for changes exceeding certain impact thresholds
 
-<br />
 
 **3. Contextual Audit Logs** - Seeing that a setting was modified is one thing but understanding
 the context of why it was changed, what logic went into making that change, and what else was changed
@@ -244,22 +218,18 @@ alongside it is essential for ensuring the project doesn't become a black box th
 I believe this was mentioned in the talk but I think it's worth reiterating that this is a critical
 feature for any AI-assisted development tool.
 
-<br />
 
 A comprehensive audit system would capture:
 
-<br />
 
 - The contextual information available to agents when making decisions
 - The reasoning process leading to specific implementation choices
 - Relationships between seemingly unrelated changes
 - Potential alternative approaches considered but not implemented
 
-<br />
 
 ---
 
-<br />
 
 There's a lot more to say about Coplay but I'm out of time for now. I think, in summmary,
 the most promising aspect of Coplay's approach is that it doesn't attempt to replace

@@ -4,7 +4,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="mt-24 border-t border-border/60 py-10 text-sm text-muted-foreground">
-      <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 px-5 sm:flex-row sm:items-center sm:px-8">
+      <div className="mx-auto font-medium flex max-w-5xl flex-col items-start justify-between gap-6 px-5 sm:flex-row sm:items-center sm:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
           <span>© {year} Ben Gregory</span>
           <Link

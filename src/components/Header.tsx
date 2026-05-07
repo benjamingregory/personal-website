@@ -23,7 +23,7 @@ export default function Header() {
         <Link
           href="/"
           aria-label="Home"
-          className="whitespace-nowrap font-display text-sm font-semibold tracking-tight text-foreground transition-colors hover:text-foreground/80"
+          className="whitespace-nowrap font-display font-semibold tracking-tight text-foreground transition-colors hover:text-foreground/80"
         >
           Ben Gregory
         </Link>
@@ -36,7 +36,7 @@ export default function Header() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative rounded-md px-2 py-1.5 text-sm transition-colors sm:px-3",
+                  "relative rounded-md font-medium px-2 py-1.5 text-sm transition-colors sm:px-3",
                   !item.mobile && "hidden sm:inline-flex",
                   active
                     ? "text-foreground"

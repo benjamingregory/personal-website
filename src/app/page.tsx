@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { ArrowRight, Mic } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Mic } from "lucide-react";
 import FadeUp from "@/components/motion/FadeUp";
 import HoverCard from "@/components/motion/HoverCard";
 import { getAllPosts } from "@/lib/posts";
+import { externalPosts } from "@/lib/external-posts";
 
 const FEATURED_PROJECTS = [
   {
@@ -23,7 +24,21 @@ const FEATURED_PROJECTS = [
 ];
 
 export default async function Home() {
-  const posts = (await getAllPosts()).slice(0, 3);
+  const internal = (await getAllPosts()).map((p) => ({
+    url: p.url,
+    title: p.title,
+    date: p.date,
+    external: false,
+  }));
+  const external = externalPosts.map((p) => ({
+    url: p.url,
+    title: p.title,
+    date: new Date(p.date).toISOString(),
+    external: true,
+  }));
+  const posts = [...internal, ...external]
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+    .slice(0, 3);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
@@ -127,23 +142,46 @@ export default async function Home() {
           </Link>
         </div>
         <ul className="divide-y divide-border/60">
-          {posts.map((post) => (
-            <li key={post.url}>
-              <Link
-                href={post.url}
-                className="group flex items-baseline justify-between gap-6 py-3 transition-colors"
-              >
-                <span className="flex items-baseline gap-3 truncate">
+          {posts.map((post) => {
+            const className =
+              "group flex items-baseline justify-between gap-6 py-3 transition-colors";
+            const inner = (
+              <>
+                <span className="flex items-baseline gap-1.5 truncate">
                   <span className="anim-underline truncate text-sm text-foreground">
                     {post.title}
                   </span>
+                  {post.external && (
+                    <ArrowUpRight
+                      aria-hidden
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    />
+                  )}
                 </span>
                 <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
                   {format(parseISO(post.date), "MMM yyyy")}
                 </span>
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={post.url}>
+                {post.external ? (
+                  <a
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={className}
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <Link href={post.url} className={className}>
+                    {inner}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </FadeUp>
 
