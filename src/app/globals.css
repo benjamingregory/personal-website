@@ -192,7 +192,7 @@
       linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    animation: electric-spin 4.5s linear infinite;
+    animation: electric-spin 6s linear infinite;
     pointer-events: none;
     filter: drop-shadow(0 0 6px hsl(var(--foreground) / 0.35));
   }
