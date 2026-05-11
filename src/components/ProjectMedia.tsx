@@ -22,7 +22,8 @@ type Props = {
   priority?: boolean;
 };
 
-const SUPPORTED_EXT = /-light\.(png|jpg|jpeg|webp)$/i;
+const SUPPORTED_EXT = /\.(png|jpg|jpeg|webp)$/i;
+const VARIANT_SUFFIX = /-(light|dark)$/i;
 
 function discoverMedia(config: ProjectMediaConfig): MediaItem[] {
   const dir = path.join(process.cwd(), "public", "projects", config.slug);
@@ -31,26 +32,43 @@ function discoverMedia(config: ProjectMediaConfig): MediaItem[] {
   const files = readdirSync(dir);
   const alts = config.alts ?? {};
 
-  type Pair = { basename: string; item: MediaItem };
+  type Pair = { basename: string; light?: string; dark?: string };
+  const groups = new Map<string, Pair>();
 
-  const pairs: Pair[] = [];
-  for (const lightFile of files) {
-    const match = lightFile.match(SUPPORTED_EXT);
-    if (!match) continue;
-    const ext = match[1];
-    const basename = lightFile.replace(SUPPORTED_EXT, "");
-    const darkFile = `${basename}-dark.${ext}`;
-    if (!files.includes(darkFile)) continue;
+  for (const file of files) {
+    if (!SUPPORTED_EXT.test(file)) continue;
+    const stem = file.replace(SUPPORTED_EXT, "");
+    const variantMatch = stem.match(VARIANT_SUFFIX);
+    const basename = variantMatch ? stem.replace(VARIANT_SUFFIX, "") : stem;
+    const variant = variantMatch?.[1].toLowerCase() as
+      | "light"
+      | "dark"
+      | undefined;
+    const url = `/projects/${config.slug}/${file}`;
+    const existing = groups.get(basename) ?? { basename };
+    if (variant === "dark") existing.dark = url;
+    else if (variant === "light") existing.light = url;
+    else {
+      existing.light ??= url;
+      existing.dark ??= url;
+    }
+    groups.set(basename, existing);
+  }
+
+  const pairs: { basename: string; item: MediaItem }[] = [];
+  for (const group of groups.values()) {
+    const fallback = group.light ?? group.dark;
+    if (!fallback) continue;
     const alt =
-      alts[basename] ??
-      (basename === "hero"
+      alts[group.basename] ??
+      (group.basename === "hero"
         ? config.altPrefix
-        : `${config.altPrefix} screenshot ${basename}`);
+        : `${config.altPrefix} screenshot ${group.basename}`);
     pairs.push({
-      basename,
+      basename: group.basename,
       item: {
-        light: `/projects/${config.slug}/${lightFile}`,
-        dark: `/projects/${config.slug}/${darkFile}`,
+        light: group.light ?? fallback,
+        dark: group.dark ?? fallback,
         alt,
         aspect: config.aspect,
       },

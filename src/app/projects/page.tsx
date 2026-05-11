@@ -155,7 +155,10 @@ const PROJECTS: Project[] = [
       slug: "jobflow",
       altPrefix: "Jobflow",
       alts: {
-        hero: "Jobflow match dashboard",
+        hero: "Jobflow pipeline board grouping roles by stage from evaluated through offer",
+        "2": "Jobflow pipeline list view sorted by match score",
+        "3": "Jobflow warm intros grouped by company with connection counts",
+        "4": "Jobflow role detail with CV match breakdown against the job description",
       },
     },
   },
@@ -202,7 +205,10 @@ const PROJECTS: Project[] = [
       slug: "demokit",
       altPrefix: "Demokit",
       alts: {
-        hero: "Demokit cloud dashboard",
+        hero: "Demokit new-project wizard reviewing detected templates, features, and journeys",
+        "2": "Demokit project view with datasets and per-entity field generation rules",
+        "3": "Demokit schema analysis step building intelligence from a parsed schema",
+        "4": "Demokit project-created screen with project ID, intelligence summary, and quick-start snippet",
       },
     },
   },
