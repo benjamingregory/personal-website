@@ -236,7 +236,10 @@ export default function Projects() {
       <div className="space-y-12">
         {PROJECTS.map((project, i) => (
           <FadeUp key={project.name} delay={i * 0.06}>
-            <article className="space-y-5">
+            <article
+              id={project.name.toLowerCase().replace(/\s+/g, "-")}
+              className="scroll-mt-20 space-y-5"
+            >
               {/* Header row */}
               <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                 <div className="flex items-baseline gap-3">

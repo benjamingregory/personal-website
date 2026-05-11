@@ -44,6 +44,114 @@ function messageText(msg: UIMessage): string {
     .join("");
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1$2")
+    .replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,!?;:])/g, "$1$2")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^>\s+/gm, "");
+}
+
+async function startStreamingAudio(
+  res: Response,
+  signal: AbortSignal,
+): Promise<HTMLAudioElement | null> {
+  if (!res.body) return null;
+
+  const canStream =
+    typeof MediaSource !== "undefined" &&
+    MediaSource.isTypeSupported("audio/mpeg");
+
+  // Safari (and any browser without MSE for audio/mpeg) falls back to buffered playback.
+  if (!canStream) {
+    const blob = await res.blob();
+    if (signal.aborted) return null;
+    return new Audio(URL.createObjectURL(blob));
+  }
+
+  const mediaSource = new MediaSource();
+  const audio = new Audio();
+  audio.src = URL.createObjectURL(mediaSource);
+  audio.preload = "auto";
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onOpen = () => {
+        mediaSource.removeEventListener("sourceopen", onOpen);
+        resolve();
+      };
+      const onAbort = () => reject(new Error("aborted"));
+      mediaSource.addEventListener("sourceopen", onOpen);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+  } catch {
+    return null;
+  }
+
+  let sourceBuffer: SourceBuffer;
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+  } catch {
+    return null;
+  }
+
+  const reader = res.body.getReader();
+  const queue: Uint8Array[] = [];
+  let streamDone = false;
+
+  const drain = () => {
+    if (sourceBuffer.updating) return;
+    const chunk = queue.shift();
+    if (chunk) {
+      try {
+        sourceBuffer.appendBuffer(chunk as unknown as ArrayBuffer);
+      } catch {
+        /* ignore append errors */
+      }
+    } else if (streamDone && mediaSource.readyState === "open") {
+      try {
+        mediaSource.endOfStream();
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  sourceBuffer.addEventListener("updateend", drain);
+
+  void (async () => {
+    try {
+      while (true) {
+        if (signal.aborted) {
+          await reader.cancel().catch(() => {});
+          break;
+        }
+        const { value, done } = await reader.read();
+        if (done) {
+          streamDone = true;
+          drain();
+          break;
+        }
+        if (value) {
+          queue.push(value);
+          drain();
+        }
+      }
+    } catch {
+      streamDone = true;
+      drain();
+    }
+  })();
+
+  return audio;
+}
+
 const SUGGESTED = [
   "What are you building right now?",
   "What did you learn from Monroe?",
@@ -69,6 +177,10 @@ export default function ChatInterface() {
   const playingRef = useRef(false);
   const ttsCursorRef = useRef(0);
   const ttsMessageIdRef = useRef<string | null>(null);
+  const extractSeqRef = useRef(0);
+  const dispatchSeqRef = useRef(0);
+  const pendingRef = useRef<Map<number, HTMLAudioElement | null>>(new Map());
+  const inflightRef = useRef<Set<AbortController>>(new Set());
   const voiceEnabledRef = useRef(voiceEnabled);
 
   const streaming = status === "streaming" || status === "submitted";
@@ -76,11 +188,14 @@ export default function ChatInterface() {
   useEffect(() => {
     voiceEnabledRef.current = voiceEnabled;
     if (!voiceEnabled) {
+      inflightRef.current.forEach((c) => c.abort());
+      inflightRef.current.clear();
       audioQueueRef.current.forEach((a) => {
         a.pause();
         URL.revokeObjectURL(a.src);
       });
       audioQueueRef.current = [];
+      pendingRef.current.clear();
       playingRef.current = false;
     }
   }, [voiceEnabled]);
@@ -113,28 +228,56 @@ export default function ChatInterface() {
     });
   }, []);
 
+  const flushPending = useCallback(() => {
+    while (pendingRef.current.has(dispatchSeqRef.current)) {
+      const audio = pendingRef.current.get(dispatchSeqRef.current);
+      pendingRef.current.delete(dispatchSeqRef.current);
+      dispatchSeqRef.current += 1;
+      if (audio) audioQueueRef.current.push(audio);
+    }
+    if (!playingRef.current && audioQueueRef.current.length > 0) {
+      playNext();
+    }
+  }, [playNext]);
+
   const enqueueTTS = useCallback(
-    async (text: string) => {
-      if (!voiceEnabledRef.current) return;
-      const trimmed = text.trim();
-      if (!trimmed) return;
+    async (text: string, seq: number) => {
+      const trimmed = stripMarkdown(text).trim();
+      if (!voiceEnabledRef.current || !trimmed) {
+        pendingRef.current.set(seq, null);
+        flushPending();
+        return;
+      }
+      const ac = new AbortController();
+      inflightRef.current.add(ac);
       try {
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: trimmed }),
+          signal: ac.signal,
         });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        if (!voiceEnabledRef.current) return;
-        const audio = new Audio(URL.createObjectURL(blob));
-        audioQueueRef.current.push(audio);
-        if (!playingRef.current) playNext();
+        if (!res.ok || !voiceEnabledRef.current) {
+          pendingRef.current.set(seq, null);
+          flushPending();
+          return;
+        }
+        const audio = await startStreamingAudio(res, ac.signal);
+        if (!audio || !voiceEnabledRef.current) {
+          pendingRef.current.set(seq, null);
+          flushPending();
+          return;
+        }
+        pendingRef.current.set(seq, audio);
+        flushPending();
       } catch {
-        /* voice is best-effort */
+        pendingRef.current.set(seq, null);
+        flushPending();
+      } finally {
+        inflightRef.current.delete(ac);
       }
     },
-    [playNext],
+    [flushPending],
   );
 
   // Per-sentence TTS as the latest assistant message streams in.
@@ -145,24 +288,32 @@ export default function ChatInterface() {
     if (ttsMessageIdRef.current !== last.id) {
       ttsMessageIdRef.current = last.id;
       ttsCursorRef.current = 0;
+      extractSeqRef.current = 0;
+      dispatchSeqRef.current = 0;
+      pendingRef.current.clear();
     }
 
     const fullText = messageText(last);
     const remaining = fullText.slice(ttsCursorRef.current);
-    const boundary = /[.!?]+(?:\s|$)/g;
+    // While streaming, require whitespace after [.!?] so abbreviations like
+    // "Mr." or "U.S." aren't split mid-word. On terminal status, flush the
+    // trailing fragment below.
+    const boundary = /[.!?]+\s/g;
     let lastEnd = 0;
     let m: RegExpExecArray | null;
     while ((m = boundary.exec(remaining)) !== null) {
       const end = m.index + m[0].length;
       const sentence = remaining.slice(lastEnd, end).trim();
-      if (sentence.length >= 4) enqueueTTS(sentence);
+      if (sentence.length >= 4) {
+        enqueueTTS(sentence, extractSeqRef.current++);
+      }
       lastEnd = end;
     }
     ttsCursorRef.current += lastEnd;
 
-    if (status === "ready") {
+    if (status === "ready" || status === "error") {
       const leftover = fullText.slice(ttsCursorRef.current).trim();
-      if (leftover) enqueueTTS(leftover);
+      if (leftover) enqueueTTS(leftover, extractSeqRef.current++);
       ttsCursorRef.current = fullText.length;
     }
   }, [messages, status, enqueueTTS]);

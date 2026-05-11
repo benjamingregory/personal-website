@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const upstream = await fetch(
-    `${ELEVENLABS_BASE}/${encodeURIComponent(voiceId)}/stream?optimize_streaming_latency=2&output_format=mp3_44100_128`,
+    `${ELEVENLABS_BASE}/${encodeURIComponent(voiceId)}/stream?optimize_streaming_latency=4&output_format=mp3_44100_128`,
     {
       method: "POST",
       headers: {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_turbo_v2_5",
+        model_id: "eleven_flash_v2_5",
       }),
     },
   );

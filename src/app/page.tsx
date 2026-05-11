@@ -10,14 +10,14 @@ const FEATURED_PROJECTS = [
   {
     name: "Kasava",
     year: "2025 — present",
-    href: "/projects",
+    href: "/projects#kasava",
     pitch:
       "An AI workflow tool for engineering teams — repo indexing, semantic commit analysis, and a chat that actually knows your codebase.",
   },
   {
     name: "Monroe",
     year: "2024 — 2025",
-    href: "/projects",
+    href: "/projects#monroe",
     pitch:
       "A TV-show platform with intelligent recommendations across web, mobile, and desktop. The Goodreads for television.",
   },
@@ -45,11 +45,11 @@ export default async function Home() {
       {/* Hero */}
       <FadeUp as="section" className="pt-16 sm:pt-24 pb-10">
         <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-          Ben Gregory
+          hi, there.
         </p>
-        <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
+        {/* <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
           Engineer, founder, and writer.
-        </h1>
+        </h1> */}
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
           I&rsquo;m building <Link href={"kasava.dev"} className="text-foreground">Kasava</Link>, an
           AI workflow tool for engineering teams. Before that I built <Link className="text-foreground" href={"joinmonroe.com"}>Monroe</Link>,
@@ -61,7 +61,7 @@ export default async function Home() {
         <div className="mt-8">
           <Link
             href="/chat"
-            className="group inline-flex items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm transition-colors hover:border-foreground/40 hover:bg-muted"
+            className="electric-border group inline-flex items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm transition-colors hover:border-foreground/40 hover:bg-muted"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors group-hover:border-foreground/40 group-hover:text-foreground">
               <Mic className="h-3.5 w-3.5" />
@@ -94,7 +94,7 @@ export default async function Home() {
             href="mailto:benjaminrgregory@gmail.com"
             className="anim-underline text-foreground"
           >
-            say hi
+            say hi <span className="italic text-xs font-medium">(email at bottom)</span>
           </a>
           .
         </p>
