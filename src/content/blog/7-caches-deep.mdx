@@ -1,7 +1,7 @@
 ---
 title: "Seven Caches Deep: The Deceptively Hard Problem of Making a TV-Tracking App Fast."
 date: 2026-05-06
-description: "Building a TV tracker that stays fast looks like CRUD from the outside. From the inside, every click is a cascade; and keeping it sub-300ms takes seven layers of cache and a neurotic obsession with the contract between them."
+description: "Building a TV tracker that stays fast looks like CRUD from the outside. From the inside, every click is a cascade, and keeping it sub-300ms takes seven layers of cache and a neurotic obsession with the contract between them."
 tags: ["engineering", "performance", "caching", "monroe", "architecture"]
 published: true
 ---
@@ -147,65 +147,54 @@ Browser ←→ [IndexedDB] ←→ TanStack Query ←→ TanStack DB Collections
                         PostgreSQL (Drizzle ORM)
 ```
 
-Let me walk through what each one is actually doing, and; more importantly; why I needed it.
+Let me walk through what each one is actually doing, and, more importantly, why I needed it.
 
-**Layer 1; Postgres with dedicated user-state tables.** This is the boring foundation. `UserShow` and `UserEpisode` are
+**Layer 1: Postgres with dedicated user-state tables.** This is the boring foundation. `UserShow` and `UserEpisode` are
 first-class tables, not blob columns hanging off a Show. That sounds obvious, but it means I can index every dimension a
 query ever cares about: per-user latest watched season-episode tuple, per-show watched count, per-month completions. The
 "next episode" SQL alone is a 50-line CTE that uses `DISTINCT ON` to find each user's latest-watched per show, then
 joins forward to find the next aired-but-unwatched. None of this works if user state is denormalized.
 
-**Layer 2; Cloudflare KV at the API edge.** Every router in the API extends a `BaseRouter` class that handles caching
-for free, with TTLs tuned per resource: 5 minutes for shows and episodes, 30 minutes for collections, 15 minutes for
-stats, 1 hour for articles, 1 minute for billing. The KV adapter has stampede protection; when ten clients miss the
-same key concurrently, only one DB query fires and the rest wait on an in-flight promise. This is invisible 95% of the
-time and saves the database from getting flattened the other 5%.
+**Layer 2: Cloudflare KV at the API edge.** Every router in the API extends a `BaseRouter` class with TTLs tuned per resource: 
+5 minutes for shows and episodes, 30 minutes for collections, 15 minutes for stats, 1 hour for articles, 1 minute for billing.
+The KV adapter has stampede protection; when ten clients miss the same key concurrently, only one DB query fires and the rest 
+wait on an in-flight promise.
 
-**Layer 3; Server-side prefetch on the Next.js root layout.** When an authenticated user hits *any* route, seven
+**Layer 3: Server-side prefetch on the Next.js root layout.** When an authenticated user hits *any* route, seven
 queries fire in parallel server-side via `Promise.allSettled`: user profile, watched episodes, sidebar show list,
 collections, next episodes, dashboard, essential dashboard. Those get dehydrated into the page and hydrate client-side
-instantly. There is no waterfall on first paint, ever. You see the sidebar populated before you see the spinner.
+instantly.
 
-**Layer 4; TanStack Query on the client.** Server cache for non-DB queries (stats, dashboard, search, billing). Stale
+**Layer 4: TanStack Query on the client.** Server cache for non-DB queries (stats, dashboard, search, billing). Stale
 times are stratified: 30 seconds for real-time stuff like notifications, 1 minute for active content, 5 minutes for
-collections, 10 minutes for static metadata. Window-focus refetching is *off*; I don't want the app to stutter every
-time you alt-tab back.
+collections, 10 minutes for static metadata.
 
-**Layer 5; IndexedDB persistence, per query.** This is the one I wrestled with the longest. TanStack Query's cache is
+**Layer 5: IndexedDB persistence, per query.** This is the one I wrestled with the longest. TanStack Query's cache is
 persisted to IndexedDB via `experimental_createQueryPersister` so that a returning user sees their library *immediately*
-on cold load, before the network round-trip even fires. We persist per-query, not as a single blob; which means a write
+on cold load, before the network round-trip even fires. We persist per-query, not as a single blob, which means a write
 is O(1) and a read is lazy. Sensitive or real-time keys (billing, search, anything time-windowed like "today" or
 "upcoming") are explicitly excluded so we don't ship stale or sensitive data into a slow background tab. On logout,
 IndexedDB gets nuked.
 
-**Layer 6; TanStack DB.** This is the newest piece, added in March 2026, and it changed everything. TanStack DB gives
-me four normalized reactive collections; `userEpisodes`, `userShows`, `shows`, `episodes`; with built-in optimistic
-mutations and automatic rollback if the API call fails. Live queries (`useWatchedEpisodeIds`, `useShowProgress`,
-`useEpisodeCountByShow`) return reactive views that re-render only the components that actually depend on the changed
-data. When a user clicks "watched," the local collection updates *synchronously*, the UI re-renders before the network
-packet leaves the device, and if the API fails the rollback is automatic.
+**Layer 6: TanStack DB.** TanStack DB gives me four normalized reactive collections; `userEpisodes`, `userShows`, 
+`shows`, `episodes`; with built-in optimistic mutations and automatic rollback if the API call fails. Live queries
+(`useWatchedEpisodeIds`, `useShowProgress`,`useEpisodeCountByShow`) return reactive views that re-render only the 
+components that actually depend on the changed data. When a user clicks "watched," the local collection updates 
+*synchronously*, the UI re-renders before the network packet leaves the device, and if the API fails the rollback
+is automatic.
 
-This is what kills the "is my click registering?" problem. It always registers. Latency happens, but it happens in the
-background.
-
-**Layer 7; Hover and viewport prefetch hooks.** When you hover over a show card for 200ms, we prefetch the show, its
+**Layer 7: Hover and viewport prefetch hooks.** When you hover over a show card for 200ms, we prefetch the show, its
 seasons, and its episodes in parallel. When a card scrolls into view (with a 100px margin via IntersectionObserver), we
-prefetch once. By the time you click, the data is already in TanStack Query. This is the cheapest performance win in the
-whole stack and feels like magic when it works.
+prefetch once. By the time you click, the data is already in TanStack Query. 
 
 That's seven layers. They are not redundant. Each one closes a specific gap that opens up when you remove it. Take out
 the Cloudflare KV layer and the database falls over under load. Take out IndexedDB and cold loads regress to network
 speed. Take out TanStack DB and clicks feel laggy. Take out the prefetch hooks and the show page has a visible loading
 state on first hover. Take out server-side prefetch and the first paint shows skeletons everywhere.
 
-I tried to skip layers. I always added them back.
-
 ## The bug that taught me the most
 
-Architecture diagrams make this all sound clean. The reality involved a bug that took me an embarrassingly long time to
-figure out.
-
-Here's the setup. The sidebar is one of the most visible UI elements on Monroe; it shows your shows grouped by state
+The sidebar is one of the most visible UI elements on Monroe; it shows your shows grouped by state
 (Queued, In Progress, Completed). The sidebar reads from a TanStack Query cache called `userShowsList`, which is a
 deliberately-minimal projection of the full user-show records.
 
@@ -299,6 +288,6 @@ Now if you'll excuse me, I have an episode of *The Bear* to mark watched. Should
 
 ---
 
-*Monroe is my pop-culture companion app. If you've ever wished there were a Letterboxd for TV, that's what I'm building.
+*Monroe is my pop-culture companion app. If you've ever wished there were a Letterboxd for TV, that's essentially what I built.
 You can find me on [LinkedIn](https://www.linkedin.com/in/benjamin-gregory/), or, if you'd rather just see the result,
 the app is at joinmonroe.com.*

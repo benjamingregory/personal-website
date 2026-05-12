@@ -51,10 +51,10 @@ export default async function Home() {
           Engineer, founder, and writer.
         </h1> */}
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-          I&rsquo;m building <Link href={"kasava.dev"} className="text-foreground">Kasava</Link>, an
-          AI workflow tool for engineering teams. Before that I built <Link className="text-foreground" href={"joinmonroe.com"}>Monroe</Link>,
-          was a senior PM on the freight team at <Link className="text-foreground" href={"flexport.com"}>Flexport </Link>  (via Shopify, via
-          Deliverr), and helped build the early platform at Astronomer. Stanford
+          I&rsquo;ve been building <Link target="_blank" href={"https://kasava.dev"} className="text-foreground">Kasava</Link>, an
+          AI workflow tool for engineering teams. Before that I built <Link className="text-foreground" target="_blank" href={"https://joinmonroe.com"}>Monroe</Link>,
+          was a senior PM on the freight team at <Link className="text-foreground" target="_blank" href={"https://flexport.com"}>Flexport </Link>  (via Shopify, via
+          Deliverr), and was founding team at Astronomer. Stanford
           GSB &rsquo;21.
         </p>
 
