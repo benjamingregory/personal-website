@@ -277,15 +277,6 @@ this is to make sure the cheap consequences happen instantly (optimistic local u
 in the background (cache patches, completion checks), and the expensive consequences happen lazily (full recomputes of
 stats, recommendations); without the user ever noticing the difference.
 
-When you read a Reddit thread of someone waiting three minutes for their watch list, what they're describing isn't
-really slowness. It's a system that punted every consequence into the user's lap. Every click is a cache miss that
-becomes a database scan that becomes a 30-second redraw. It's the architecture making the user pay for laziness.
-
-The whole point of this seven-layer stack is to make sure the user never has to pay that bill. Which, honestly, when it
-works, is the most satisfying thing in software.
-
-Now if you'll excuse me, I have an episode of *The Bear* to mark watched. Should take about 300ms.
-
 ---
 
 *Monroe is my pop-culture companion app. If you've ever wished there were a Letterboxd for TV, that's essentially what I built.
