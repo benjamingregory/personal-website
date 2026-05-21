@@ -1,0 +1,190 @@
+---
+title: "One Show, Thirty Seconds: The Query I Had to Turn Inside Out"
+date: 2026-05-21
+description: "Monroe's recommendation batch recomputes show overlap live for every user, every night, under a thirteen-minute deadline. The query that was supposed to relieve it took thirty seconds for a single show. Here's how set-based SQL and candidate generation got the whole catalog down to minutes."
+tags: ["engineering", "performance", "postgres", "sql", "monroe", "recommendations"]
+published: true
+---
+
+Every night, Monroe's recommendation engine recomputes talent and genre overlap *live, for every
+user*, and it does it against a clock. There's a thirteen-minute safety valve on the batch. Overrun
+it and the job starts dropping users on the floor rather than make everyone wait. So the overlap math
+runs while a real person is tapping their foot at the end of a request.
+
+I wanted to take that work out of the hot path entirely. The idea is simple: precompute a
+show-to-show similarity table once, offline, so the nightly job reads a lookup instead of recomputing
+overlap from scratch per user. For every show, store its nearest neighbors under a single score.
+Build it ahead of time, and the batch stops doing the expensive part.
+
+"Nearest neighbors" here doesn't mean "shows in the same genre." It means a ranked list of the most
+similar shows under a score that blends genre, network, era, shared cast, and how often two shows get
+written about in the same article. The catalog is 190,248 shows sitting on top of a 547,016-row cast
+and crew graph. Compute the neighbors for all of them and you've moved the cost off the user's clock
+for good.
+
+That was the plan. The first version of the query that was supposed to deliver it took **thirty
+seconds to answer for one show**. There are 190,248 of them. This post is about why the obvious way
+was a trap, and what the not-obvious way actually buys you.
+
+## What I was actually trying to compute
+
+A quick word on the score, because it's the part I'm proudest of and the part most people would have
+done differently.
+
+The fashionable move in 2026 is to throw every show's plot summary at an embedding model, get back a
+1,536-dimension vector, and call cosine similarity on it. I didn't want that. An embedding is lossy
+and hard to reason about. If two shows come out close, you can't say *why*, and "why" is the entire
+point of a recommendation you're going to put in front of a user. When Monroe says two shows are
+alike I want it to be able to say "alike because: shared showrunner, same network, same era," not
+"alike because: the vectors said so."
+
+So the score is a plain weighted sum of five terms I can read off by hand:
+
+```
+sim(A,B) = 3·genre + 2·network + 1·era + 2·cast + 1.5·co_mention
+```
+
+Each term is normalized to a 0-to-1 range. Genre and network use a cosine over the shows' genre and
+network sets, weighted by [inverse document frequency](https://nlp.stanford.edu/IR-book/html/htmledition/inverse-document-frequency-1.html)
+so that a shared "Drama" tag (which 39,987 shows carry) counts for almost nothing and a shared rare
+genre counts for a lot. Era is a Gaussian on the gap between premiere years. Cast is the IDF-weighted
+count of shared people, so a journeyman character actor who shows up everywhere is worth less than a
+lead who anchors two specific shows. Co-mention comes from a table Monroe already maintains: how
+often two shows appear together in the same article.
+
+Every weight is a knob I can turn, and every adjacency is explainable by printing the five numbers
+that produced it. That was the goal. It's also, as it turns out, exactly the thing that makes the
+computation expensive, because all five terms have to be evaluated for a lot of pairs.
+
+## The obvious way, and why it crawled
+
+Here's how you write this the first time, and it feels completely reasonable.
+
+For a given show, gather its candidate neighbors. Then, for each candidate, compute the five terms.
+Genre overlap? Subquery: sum the IDF weights over the genres the two shows share. Shared cast?
+Subquery: count the people in both. Co-mention? Subquery: look up the overlap count. Five little
+lookups per pair, wrapped in the kind of `LEFT JOIN LATERAL` that reads beautifully and runs like
+glue.
+
+The problem is what Postgres does with that shape. A correlated subquery, one whose inner query
+refers to the outer row, gets implemented as a nested loop: it
+[re-runs once for every row of the outer query](https://www.cybertec-postgresql.com/en/subqueries-and-performance-in-postgresql/).
+So if a show has six hundred candidate neighbors and five correlated terms, that's three thousand
+independent little index probes for one show. Each one is fast. Three thousand of them are not.
+
+I ran it for Breaking Bad. Thirty-point-nine seconds. The neighbors it returned were great — Better
+Call Saul on top, then Justified, Fargo, Mad Men — so I knew the *math* was right. The shape was the
+problem, not the score. But thirty seconds for one show, times 190,248 shows, is a job measured in
+days.
+
+And that's before the part I've been quietly skipping. If you're not careful about which pairs you
+even consider, you're flirting with comparing all 190,248 shows against all 190,248 shows. That's
+thirty-six billion pairs. The slow query was merely slow. The naive *all-pairs* version wouldn't
+finish at all.
+
+## Move one: stop comparing everything
+
+The first fix has nothing to do with SQL syntax. It's deciding which pairs are worth scoring in the
+first place.
+
+You do not need to compare The Sopranos to a 1974 Bulgarian children's program. The vast majority of
+those thirty-six billion pairs score zero on every single term, and computing zero is still
+computing. So before any scoring happens, I generate candidates: for each show, the union of three
+cheap pulls. Shows that share a cast member. Shows joined by a co-mention edge. And shows that share
+a genre, but capped to the five hundred most popular per genre so that "Drama" doesn't drag in forty
+thousand candidates by itself.
+
+This is not a clever trick I invented. Recommender systems call it
+[candidate generation](https://developers.google.com/machine-learning/recommendation/overview/candidate-generation):
+a cheap first stage that narrows millions of items down to a plausible few hundred before the
+expensive scoring runs. The record-linkage world has done the same thing for decades under the name
+[blocking](https://www.cs.utexas.edu/~ml/papers/blocking-icdm-06.pdf), explicitly to dodge the
+quadratic cost of comparing every record to every other record.
+
+After capping, each show pulls about 622 candidates instead of 190,248. That one decision is the
+difference between a job that can finish and one that can't. Nothing downstream matters until you've
+made it.
+
+## Move two: ask the database one big question, not a million small ones
+
+Now the syntax part.
+
+The correlated-subquery version asks the database a million tiny questions. For *this* pair, what's
+the genre overlap? For *this* pair, the shared cast? A relational database is miserable at that.
+It's not built to be a loop. It's built to take two sets and combine them in bulk, with hash joins
+and a single grouped aggregation. I was using a set engine as a for-loop and then acting surprised
+when it dragged.
+
+So I turned the query inside out. Instead of "for each pair, go look up its shared genres," it
+became "join the whole candidate set to the genre table once, group by pair, sum the weights." One
+`INSERT ... SELECT`. The genre term is one join-and-group. The cast term is one join-and-group. The
+final score and the top-50-per-show ranking is a single window function over the assembled result.
+No pair is ever visited in a loop. The planner sees the whole job at once and picks bulk strategies
+for it.
+
+The math is identical. The Breaking Bad neighbors come out the same. The only thing that changed is
+that I stopped narrating the computation row by row, described the end state I wanted, and let the
+planner figure out how to get there.
+
+The numbers:
+
+- **Old way:** ~30 seconds for one show.
+- **New way:** ~45 seconds for three thousand shows.
+
+That's not a percentage improvement. It's a different category of operation. Extrapolated across the
+roughly 42,000 shows that have enough signal to matter, the whole table builds in about ten minutes,
+once, offline — instead of overlap getting recomputed live while a user taps their foot and the batch
+counts down to its valve.
+
+## The detour I didn't plan on: the data was a mess
+
+I'd love to tell you it went straight from thirty seconds to ten minutes. It did not. The data fought
+me first, and I never saw it coming.
+
+Monroe stores each show's genres as JSON inside a text column. Fine. Except the column holds three
+*different* serializations, layered down over years of ingestion code. Some rows are clean JSON:
+`[{"id":18,"name":"Drama"}]`. Some are a Postgres array of JSON strings. And the single largest
+group, 67,978 of them, are not valid JSON at all: `[{'id':18,'name':'Drama'}]`, with single quotes.
+
+Those single quotes are a fingerprint. That's exactly what Python's `str()` does to a list of dicts,
+and Monroe's oldest ingestion path was a Python cron runner. The data is a sediment layer from a
+previous era of the codebase, and I was reading straight through it without knowing.
+
+This matters well beyond the similarity table. Monroe's live recommendation queries parse that column
+with `genres::json`, which means they silently skip or choke on every single-quoted row. The fix is
+the same one the new table needed: parse all three formats once, into a clean lookup table, and never
+parse text at read time again. Forty percent of shows turn out to have no usable genre at all once
+you look this closely — its own uncomfortable finding, but at least now it's a known number instead
+of a silent gap in the recommendations.
+
+The lesson I keep relearning: before you optimize a computation, find out what your data actually
+looks like. Mine looked like three archaeological strata pretending to be one column.
+
+## The point
+
+Three things turned a query that couldn't finish into one that runs in ten minutes, and none of them
+was a faster machine.
+
+First, **don't compute what you can skip.** Candidate generation threw away the billions of pairs
+that were always going to score zero. Second, **let the database be a set engine.** The same
+five-term score, expressed as bulk joins instead of per-row lookups, went from thirty seconds a show
+to forty-five seconds for three thousand. Third, **clean the data before you trust the query**,
+because a fast query over a column you're misreading is just a quick way to be confidently wrong.
+
+The part I find satisfying is that the slow version and the fast version answer the identical question
+and return the identical neighbors. Breaking Bad still sits next to Better Call Saul, with Fargo and
+Justified close behind, and Bob Odenkirk's lesser-known Lucky Hank pulled in purely through the cast
+graph. Nothing about the *answer* got better. The batch just stopped asking for it one show at a
+time, every night, for every user.
+
+## Sources
+
+1. Inverse document frequency, *Introduction to Information Retrieval* (Manning, Raghavan & Schütze, Cambridge University Press). https://nlp.stanford.edu/IR-book/html/htmledition/inverse-document-frequency-1.html
+2. Subqueries and performance in PostgreSQL (CYBERTEC). https://www.cybertec-postgresql.com/en/subqueries-and-performance-in-postgresql/
+3. Candidate generation overview, Recommendation Systems (Google for Developers). https://developers.google.com/machine-learning/recommendation/overview/candidate-generation
+4. Adaptive Blocking: Learning to Scale Up Record Linkage (Bilenko, Kamath & Mooney, ICDM 2006). https://www.cs.utexas.edu/~ml/papers/blocking-icdm-06.pdf
+
+---
+
+*Monroe is my pop-culture companion app, a Letterboxd for TV. You can find me on
+[LinkedIn](https://www.linkedin.com/in/benjamin-gregory/), or see the app at joinmonroe.com.*
