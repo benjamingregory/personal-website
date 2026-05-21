@@ -17,6 +17,7 @@
     "@ai-sdk/react": "^3.0.177",
     "@mastra/ai-sdk": "^1.4.1",
     "@mastra/core": "^1.32.1",
+    "@paper-design/shaders-react": "^0.0.76",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/typography": "^0.5.19",
     "ai": "^6.0.175",

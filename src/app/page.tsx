@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ArrowRight, ArrowUpRight, Mic } from "lucide-react";
 import FadeUp from "@/components/motion/FadeUp";
 import HoverCard from "@/components/motion/HoverCard";
+import GradientHeroLazy from "@/components/webgl/gradient-hero-lazy";
 import { getAllPosts } from "@/lib/posts";
 import { externalPosts } from "@/lib/external-posts";
 
@@ -43,7 +44,8 @@ export default async function Home() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
       {/* Hero */}
-      <FadeUp as="section" className="pt-16 sm:pt-24 pb-10">
+      <FadeUp as="section" className="relative pt-16 sm:pt-24 pb-10">
+        <GradientHeroLazy />
         <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
           hi, there.
         </p>
