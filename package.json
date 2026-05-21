@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "check:external-posts": "node scripts/check-external-posts.mjs",
+    "prebuild": "node scripts/check-external-posts.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

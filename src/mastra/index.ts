@@ -6,6 +6,7 @@ import {
   PromptInjectionDetector,
 } from "@mastra/core/processors";
 import { buildSystemPrompt } from "./persona";
+import { fetchExternalPost } from "./tools/fetch-external-post";
 
 export const BEN_AGENT_ID = "ben";
 
@@ -22,6 +23,7 @@ export function getMastra(): Promise<Mastra> {
         name: "Ben Gregory",
         instructions,
         model: "anthropic/claude-sonnet-4-6",
+        tools: { fetchExternalPost },
         inputProcessors: [
           new PromptInjectionDetector({
             model: GUARDRAIL_MODEL,
