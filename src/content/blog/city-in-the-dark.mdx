@@ -1,0 +1,180 @@
+---
+title: "Your City in the Dark: The Hard Part Was Lighting It Back Up"
+date: 2026-05-22
+description: "Unmap renders San Francisco as a dark, anonymous map you reveal by visiting places. From the outside it's dots on a screen. From the inside it was a row cap that silently hid most of the city, building footprints that kept lighting whole blocks, and a fog that had to be navigable and anonymous at the same time."
+tags: ["engineering", "maps", "postgres", "postgis", "frontend", "unmap"]
+published: false
+---
+
+Open Unmap and you get a black map of San Francisco. Not a stylized dark theme; actually dark, like
+the lights are off. There are no labels. Nothing is named. You can still tell it's your city, because
+the streets and the shoreline and the parks read through the gloom as faint geometry, but the map
+refuses to tell you what any of it is called.
+
+Then you reveal a place you've been, and the building it sits in lights up. Not a dot, not a glowing
+circle. The actual footprint of that one building, warm against the dark. The pitch is *your city, in
+the dark*, and you earn it back one address at a time.
+
+From the outside that sounds like dots on a map. Put points on a basemap, light the ones the user has
+visited, done. I believed that for about a day. This post is about the three places it turned out not
+to be that, and the wrong turns I took in each one.
+
+## The fog had to be navigable and anonymous at the same time
+
+The first version was a near-total blackout: a fog layer at `rgba(3,5,12,0.985)` painted over the
+whole map. It looked great in a screenshot and was useless to actually use. You couldn't orient. With
+the city that dark and the labels gone, you were staring into a void with a few glowing dots in it,
+and you had no idea whether the dot you cared about was in the Mission or the Marina.
+
+That forced the actual product decision, which I should have made on purpose instead of backing into:
+the city should be **navigable but anonymous**. You can see where you are. You cannot see what
+anything is called. Names fill in only as you explore.
+
+Those are two different jobs, and they're handled in two different places:
+
+- **Navigable** is the fog. I dropped `FOG_COLOR` from that near-opaque value to `rgba(3,5,12,0.45)`,
+  so it reads as a dim tint instead of a blackout. Streets, water, and parks show through as
+  silhouette. You get orientation without legibility.
+- **Anonymous** is the labels. Every `symbol` layer in the basemap style is set to
+  `visibility: none`. The geometry stays (that's the navigable part); the text goes (that's the
+  anonymous part). I also softened the corner vignette so it frames the view rather than carving a
+  dark circle out of it.
+
+The lesson I keep having to relearn: "make it look cool" and "make it usable" are not the same slider.
+The blackout was the cool version. Splitting cool into *navigable* plus *anonymous* was the usable
+one.
+
+## Light the building, not a blob
+
+A reveal should light the building at that address. That's the whole emotional payload of the product,
+so a fuzzy circle wasn't going to cut it. This is the part that went through the most wrong turns, and
+they're worth writing down because each one looked correct until it didn't.
+
+**Wrong turn one: a glowing disc.** The first reveal was a 240-meter radial glow centered on the
+point. Too blobby. It lit a neighborhood, not a building, and it killed the entire "that's *my*
+building" feeling.
+
+**Wrong turn two: trace the building geometry from the basemap.** Reasonable next move: the basemap
+already has `building` features, so query the one under the point and outline it. Except the basemap's
+`building` features are **MultiPolygons that bundle many buildings per tile**. One feature I pulled
+had roughly 180 separate polygons in it. Tracing the feature lit the entire block. The fix was to pull
+out the *single* polygon that actually contains the venue point (a point-in-polygon test), or the
+nearest building-sized one within a snap radius if the point sat just off its footprint.
+
+**Wrong turn three, sort of: defending against merged geometry.** At low zoom the basemap hands back
+coarse, merged shapes, so I added a `MAX_FOOTPRINT_M` guard (250 meters) that rejects anything bigger
+than a plausible building and falls back to a soft glow. Then I added a refine-on-zoom pass that
+re-queries as the finer building tiles stream in and swaps a coarse polygon for a tighter one, never
+the other way around.
+
+All of that worked. It was also the wrong architecture, and I only saw why once it was running. Two
+problems wouldn't go away. The footprints **took a beat to appear**, because they only resolved once
+you'd zoomed in far enough for the building tiles to load. And in dense areas the basemap merges
+attached buildings into one block polygon, so there simply was no per-address geometry to find, no
+matter how clever the query.
+
+Both problems have the same root cause: I was deriving geometry on the client, at runtime, from a
+source that didn't have it at the resolution I needed. So I stopped doing that and computed the
+footprints **once, server-side**, from real data.
+
+The source is [DataSF's Building Footprints dataset](https://data.sfgov.org/Geographic-Locations-and-Boundaries/Building-Footprints/ynuv-fyni),
+roughly 177,000 individual building polygons, authoritative and per-building, no GDAL or DuckDB
+gymnastics required. An ingest script loads all of them into a scratch PostGIS table, and for each
+venue finds the building it's contained by (or the nearest within about 40 meters), then stores a
+simplified footprint right on the venue row. Coverage came out to **12,441 of 12,680 venues, about
+98%**.
+
+One detail mattered more than I expected: the simplify tolerance. At 2 meters, PostGIS flattened
+detailed buildings into quads, around 9 vertices each, and the city started looking like it was made
+of shoeboxes. Dropping to 0.4 meters kept the L-shapes and notches that make a building look like
+itself (about 18 vertices each), at the cost of growing the payload from 5.5 MB to 8.4 MB. Worth every
+byte.
+
+The client now reads the footprint straight off each venue. The entire runtime stack I'd been so proud
+of (the tile query, the point-in-polygon test, the size guards, the refine-on-zoom) got deleted.
+Footprints are now instant at any zoom, including the moment the map first loads, which is exactly when
+you want them.
+
+Oh, and I prototyped 3D extruded buildings and threw them away. The flat footprint, the blueprint look,
+was the right call, and the basemap has no usable per-building height across most of the city anyway.
+
+## The bug that hid most of the city
+
+This is the one that cost me the most time, and the one I'd most like to save you from.
+
+The original data loading re-queried a bounding-box function on every `moveend` and *replaced* the
+whole venue set with the result. So panning the map waited on a network round trip, and dots blinked
+out and re-popped as you dragged. Worse, a zoomed-out viewport held more venues than the query's row
+cap, so the returned subset reshuffled every time you moved. The map felt like it was made of jelly.
+
+The fix is almost embarrassingly blunt: load the whole city once and never query on pan again. San
+Francisco is only about **12,680 venues**, roughly 250 KB gzipped. That's nowhere near the ~50,000-point
+range where the MapLibre and deck.gl guidance says you should start reaching for vector tiles. Vector
+tiles are the right answer at scale and complete overkill here. So: one request, cache it, render
+everything.
+
+I shipped that, reloaded, and only downtown rendered. The rest of the city was empty.
+
+The cause took a while to find because it was invisible from where I was looking. PostgREST, which sits
+under Supabase's REST layer, enforces a `db-max-rows` limit, and on Supabase that default is **1,000
+rows**. When a query returns more, PostgREST doesn't error. It silently returns the first 1,000 by scan
+order and moves on. My venues happened to cluster downtown by insert order, so the first thousand rows
+were all downtown, and the city beyond it just didn't exist as far as the client knew. The same cap had
+quietly been truncating the old bounding-box query too; I'd never caught it because my `psql` tests ran
+against the database directly and bypassed PostgREST entirely. The tool I was using to verify the data
+was the one tool that couldn't see the bug.
+
+The fix is a nice little PostgREST trick. The row cap applies to row *sets*. So I rewrote the function
+to return a single `jsonb` array instead of a set of rows. A scalar result is one row by definition, the
+cap doesn't apply, and all 12,680 venues come back in one response with their footprints embedded.
+`supabase-js` hands the array straight back as data.
+
+Caching went into IndexedDB rather than localStorage, because with footprints embedded the payload is
+about 8.4 MB and localStorage caps out around 5. It's cache-first on load (a fresh hit renders the
+whole city with zero network), a 7-day TTL, and a version prefix in the cache key so that older,
+footprint-less, or truncated caches invalidate themselves automatically when the shape changes.
+
+## One more, because it's a good trap
+
+A smaller one worth flagging if you're on a recent React. The dots are drawn by deck.gl, mounted as an
+interleaved overlay so deck renders into MapLibre's own WebGL context instead of a second canvas
+stacked on top. One GL context, no manual per-frame camera syncing, the dots ride the map's render
+loop.
+
+The documented way to feed it new props is to call `setProps` in the render body. Under Next.js 16 and
+its React Compiler, that throws "Rules of Hooks" errors at runtime. Moving the `setProps` call into a
+`useEffect` fixes it cleanly. I verified it the boring way: the separate-canvas version was clean,
+in-render `setProps` errored, effect-based `setProps` was clean. Sometimes the documented pattern and
+your framework's newest rules just disagree, and you find out at runtime.
+
+## The point
+
+Three things turned "dots on a map" into something that actually feels like fog of war over a real
+city, and none of them was the part I expected to be hard.
+
+First, **a scalar result dodges a row cap your direct database tests can't see.** PostgREST capping a
+row set at 1,000 and returning the first thousand by scan order is the kind of bug that hides in plain
+sight, especially when your verification path bypasses the exact layer doing the truncating. Returning
+one `jsonb` array made the cap irrelevant.
+
+Second, **precomputing geometry once, server-side, beats any amount of clever client-side derivation.**
+The runtime tile-query stack was genuinely clever and it was the wrong call. A spatial join against a
+real buildings dataset gave me per-address footprints that are instant at every zoom, and let me delete
+hundreds of lines of guards and refinement logic.
+
+Third, **the product decision was the engineering decision.** "Navigable but anonymous" wasn't a tagline
+I bolted on at the end. It's why the fog is a tint and not a blackout, why every label layer is off, and
+why a reveal lights one building's exact footprint instead of a glowing blob. The constraints made the
+feeling, and the feeling was the whole point.
+
+## Sources
+
+1. Pagination and Count (PostgREST documentation). https://docs.postgrest.org/en/stable/references/api/pagination_count.html
+2. Configuration: `db-max-rows` (PostgREST documentation). https://docs.postgrest.org/en/stable/references/configuration.html
+3. Building Footprints, dataset `ynuv-fyni` (DataSF, City and County of San Francisco). https://data.sfgov.org/Geographic-Locations-and-Boundaries/Building-Footprints/ynuv-fyni
+4. MapboxOverlay (deck.gl documentation). https://deck.gl/docs/api-reference/mapbox/mapbox-overlay
+
+---
+
+*Unmap is a side project: a fog-of-war map of the city you reveal by going places. You can find me on
+[LinkedIn](https://www.linkedin.com/in/benjamin-gregory/).*

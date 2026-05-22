@@ -72,8 +72,8 @@ refers to the outer row, gets implemented as a nested loop: it
 So if a show has six hundred candidate neighbors and five correlated terms, that's three thousand
 independent little index probes for one show. Each one is fast. Three thousand of them are not.
 
-I ran it for Breaking Bad. Thirty-point-nine seconds. The neighbors it returned were great — Better
-Call Saul on top, then Justified, Fargo, Mad Men — so I knew the *math* was right. The shape was the
+I ran it for Breaking Bad. Thirty-point-nine seconds. The neighbors it returned were great. Better
+Call Saul on top, then Justified, Fargo, Mad Men, so I knew the *math* was right. The shape was the
 problem, not the score. But thirty seconds for one show, times 190,248 shows, is a job measured in
 days.
 
@@ -133,7 +133,7 @@ The numbers:
 
 That's not a percentage improvement. It's a different category of operation. Extrapolated across the
 roughly 42,000 shows that have enough signal to matter, the whole table builds in about ten minutes,
-once, offline — instead of overlap getting recomputed live while a user taps their foot and the batch
+once, offline, instead of overlap getting recomputed live while a user taps their foot and the batch
 counts down to its valve.
 
 ## The detour I didn't plan on: the data was a mess
@@ -154,7 +154,7 @@ This matters well beyond the similarity table. Monroe's live recommendation quer
 with `genres::json`, which means they silently skip or choke on every single-quoted row. The fix is
 the same one the new table needed: parse all three formats once, into a clean lookup table, and never
 parse text at read time again. Forty percent of shows turn out to have no usable genre at all once
-you look this closely — its own uncomfortable finding, but at least now it's a known number instead
+you look this closely. That's its own uncomfortable finding, but at least now it's a known number instead
 of a silent gap in the recommendations.
 
 The lesson I keep relearning: before you optimize a computation, find out what your data actually
