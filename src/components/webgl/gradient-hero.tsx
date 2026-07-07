@@ -29,14 +29,18 @@ function useIsDark() {
   return dark;
 }
 
-export default function GradientHero({ intensity = 0.7 }: { intensity?: number }) {
+export default function GradientHero({
+  intensity = 0.7,
+}: {
+  intensity?: number;
+}) {
   const reduced = useReducedMotion();
   const dark = useIsDark();
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[240%] w-screen -translate-x-1/2"
+      className="pointer-events-none absolute left-1/2 -top-14 -z-10 h-[240%] w-screen -translate-x-1/2"
       style={{
         opacity: intensity,
         // Broad top-anchored fade across the full viewport width — no center pooling.
