@@ -211,7 +211,7 @@ export default function ChatInterface() {
     });
   }, [messages, interim]);
 
-  const playNext = useCallback(() => {
+  const playNext = useCallback(function playNextInQueue() {
     const next = audioQueueRef.current.shift();
     if (!next) {
       playingRef.current = false;
@@ -220,11 +220,11 @@ export default function ChatInterface() {
     playingRef.current = true;
     next.onended = () => {
       URL.revokeObjectURL(next.src);
-      playNext();
+      playNextInQueue();
     };
     next.play().catch(() => {
       URL.revokeObjectURL(next.src);
-      playNext();
+      playNextInQueue();
     });
   }, []);
 

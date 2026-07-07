@@ -28,7 +28,7 @@ export default function ProjectCarousel({ items, priority = false }: Props) {
     const onSelect = () => setSelectedIndex(api.selectedScrollSnap());
     api.on("select", onSelect).on("reInit", onSelect);
     return () => {
-      api.off("select", onSelect);
+      api.off("select", onSelect).off("reInit", onSelect);
     };
   }, [api]);
 

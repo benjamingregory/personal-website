@@ -1,5 +1,3 @@
-import Script from "next/script";
-
 interface BlogPostJsonLdProps {
   title: string;
   description: string;
@@ -7,6 +5,15 @@ interface BlogPostJsonLdProps {
   author?: string;
   url: string;
   image?: string;
+}
+
+function JsonLdScript({ data }: { data: Record<string, unknown> }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
 }
 
 export function BlogPostJsonLd({
@@ -29,14 +36,10 @@ export function BlogPostJsonLd({
     datePublished: date,
     dateModified: date,
     url: url,
-    image: image || "https://bengregory.com/og-image.jpg",
+    ...(image ? { image } : {}),
     publisher: {
       "@type": "Person",
       name: author,
-      logo: {
-        "@type": "ImageObject",
-        url: "https://bengregory.com/logo.png",
-      },
     },
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -44,14 +47,7 @@ export function BlogPostJsonLd({
     },
   };
 
-  return (
-    <Script
-      id="blog-post-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      strategy="afterInteractive"
-    />
-  );
+  return <JsonLdScript data={jsonLd} />;
 }
 
 interface WebSiteJsonLdProps {
@@ -71,24 +67,9 @@ export function WebSiteJsonLd({ name, description, url }: WebSiteJsonLdProps) {
       "@type": "Person",
       name: "Ben Gregory",
     },
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${url}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
   };
 
-  return (
-    <Script
-      id="website-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      strategy="afterInteractive"
-    />
-  );
+  return <JsonLdScript data={jsonLd} />;
 }
 
 interface PersonJsonLdProps {
@@ -115,7 +96,7 @@ export function PersonJsonLd({
     jobTitle: jobTitle,
     description: description,
     url: url,
-    image: image || "https://bengregory.com/profile.jpg",
+    ...(image ? { image } : {}),
     sameAs: sameAs,
     alumniOf: [
       {
@@ -125,12 +106,5 @@ export function PersonJsonLd({
     ],
   };
 
-  return (
-    <Script
-      id="person-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      strategy="afterInteractive"
-    />
-  );
+  return <JsonLdScript data={jsonLd} />;
 }

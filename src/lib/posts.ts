@@ -58,7 +58,9 @@ export async function getAllPosts(): Promise<Post[]> {
         title: String(data.title ?? rel),
         date: toIso(data.date),
         description: String(data.description ?? ""),
-        tags: Array.isArray(data.tags) ? data.tags.map(String) : undefined,
+        tags: Array.isArray(data.tags)
+          ? data.tags.map((t) => String(t).toLowerCase())
+          : undefined,
         series: data.series ? String(data.series) : undefined,
         published: data.published !== false,
         readingMinutes: Math.max(1, Math.ceil(stats.minutes)),

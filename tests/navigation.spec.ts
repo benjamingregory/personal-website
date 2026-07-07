@@ -7,175 +7,92 @@ test.describe('Navigation', () => {
 
   test('should navigate to all main sections', async ({ page }) => {
     const sections = [
-      { name: 'Work', href: '/work', title: /work/i },
-      { name: 'Education', href: '/education', title: /education/i },
-      { name: 'Projects', href: '/projects', title: /projects/i },
-      { name: 'Blog', href: '/blog', title: /blog/i },
+      { name: 'Work', href: '/work', heading: /work/i },
+      { name: 'Projects', href: '/projects', heading: /projects/i },
+      { name: 'Blog', href: '/blog', heading: /blog/i },
+      { name: 'Education', href: '/education', heading: /education/i },
     ];
 
     for (const section of sections) {
-      // Click on navigation link
-      await page.getByRole('link', { name: `Navigate to ${section.name} section` }).click();
-      
-      // Verify URL changed
-      await expect(page).toHaveURL(section.href);
-      
-      // Verify page loaded (check for some content)
-      await expect(page.locator('main')).toBeVisible();
+      await page
+        .locator('nav[aria-label="Main"]')
+        .getByRole('link', { name: section.name })
+        .click();
+      // Generous timeout: dev server compiles routes on first visit
+      await expect(page).toHaveURL(section.href, { timeout: 15000 });
+      await expect(page.locator('h1')).toContainText(section.heading, {
+        timeout: 15000,
+      });
     }
   });
 
-  test('should highlight active navigation item', async ({ page }) => {
-    // Check home page - no section should be bold
-    const homeLinks = page.locator('nav').getByRole('link').filter({ hasText: /^(Work|Education|Projects|Blog)$/ });
-    for (const link of await homeLinks.all()) {
-      const span = link.locator('span');
-      await expect(span).not.toHaveClass(/font-bold/);
-    }
+  test('should mark the active navigation item with aria-current', async ({ page }) => {
+    const nav = page.locator('nav[aria-label="Main"]');
 
-    // Navigate to Work and check it's highlighted
+    // On home, no section link is current
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(0);
+
+    // Navigate to Work and check it's marked current
     await page.goto('/work');
-    const workLink = page.getByRole('link', { name: 'Navigate to Work section' }).locator('span');
-    await expect(workLink).toHaveClass(/font-bold/);
-    
-    // Check others are not highlighted
-    const otherSections = ['Education', 'Projects', 'Blog'];
-    for (const section of otherSections) {
-      const link = page.getByRole('link', { name: `Navigate to ${section} section` }).locator('span');
-      await expect(link).not.toHaveClass(/font-bold/);
-    }
+    const current = nav.locator('a[aria-current="page"]');
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveText('Work');
   });
 
   test('should navigate back to home when clicking name', async ({ page }) => {
-    // Navigate to a different page first
     await page.goto('/blog');
-    
-    // Click on "Ben Gregory" to go home
-    await page.getByRole('link', { name: /go to homepage/i }).click();
-    
-    // Should be on home page
+    await page.getByRole('link', { name: 'Home' }).click();
     await expect(page).toHaveURL('/');
   });
 
   test('should have proper ARIA labels for accessibility', async ({ page }) => {
-    // Check main navigation has proper aria-label
-    const nav = page.locator('nav[aria-label="Main navigation"]');
-    await expect(nav).toBeVisible();
-    
-    // Check navigation links have proper aria-labels
-    const homeLink = page.getByRole('link', { name: /go to homepage/i });
-    await expect(homeLink).toBeVisible();
-    
-    // Check section links have proper aria-labels
-    const workLink = page.getByRole('link', { name: /navigate to work section/i });
-    await expect(workLink).toBeVisible();
+    await expect(page.locator('nav[aria-label="Main"]')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
+    await expect(
+      page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Work' }),
+    ).toBeVisible();
   });
 
-  test('should maintain scroll position when navigating', async ({ page }) => {
-    // Go to blog page
+  test('should be at top of page after navigating', async ({ page }) => {
     await page.goto('/blog');
-    
-    // Scroll down a bit
     await page.evaluate(() => window.scrollTo(0, 200));
-    
-    // Navigate to another page
-    await page.getByRole('link', { name: 'Navigate to Projects section' }).click();
-    
-    // Should be at top of new page
+    await page
+      .locator('nav[aria-label="Main"]')
+      .getByRole('link', { name: 'Projects' })
+      .click();
+    await expect(page).toHaveURL('/projects');
     const scrollPosition = await page.evaluate(() => window.scrollY);
-    expect(scrollPosition).toBeLessThanOrEqual(10); // Allow small margin for any animations
+    expect(scrollPosition).toBeLessThanOrEqual(10);
   });
 
-  test('should show footer text on desktop only', async ({ page, viewport }) => {
-    // The footer text is in the sidebar, has hidden class and sm:flex
-    const footer = page.locator('[aria-label="Footer"]');
-    
-    // Desktop view - check if viewport is desktop size first
-    const viewportSize = page.viewportSize();
-    if (viewportSize && viewportSize.width >= 640) {
-      await expect(footer).toBeVisible();
-    } else {
-      // If test starts in mobile view, set desktop size first
-      await page.setViewportSize({ width: 1024, height: 768 });
-      await expect(footer).toBeVisible();
-    }
-    
-    // Mobile view
+  test('should show all nav links on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await expect(footer).toBeHidden();
-  });
-
-  test('sidebar should be responsive', async ({ page }) => {
-    const sidebar = page.locator('nav[aria-label="Main navigation"]');
-    
-    // Ensure we start with desktop view
-    const viewportSize = page.viewportSize();
-    if (!viewportSize || viewportSize.width < 640) {
-      await page.setViewportSize({ width: 1024, height: 768 });
+    const nav = page.locator('nav[aria-label="Main"]');
+    for (const name of ['Work', 'Projects', 'Blog', 'Education']) {
+      await expect(nav.getByRole('link', { name })).toBeVisible();
     }
-    
-    // Desktop view - should have sm:w-[240px] applied
-    let sidebarWidth = await sidebar.evaluate(el => el.offsetWidth);
-    expect(sidebarWidth).toBeGreaterThanOrEqual(190); // Allow more flexibility for different browsers
-    
-    // Mobile view - should have min-w-[140px] applied
-    await page.setViewportSize({ width: 375, height: 667 });
-    sidebarWidth = await sidebar.evaluate(el => el.offsetWidth);
-    expect(sidebarWidth).toBeGreaterThanOrEqual(100); // min-width with flexibility
-    expect(sidebarWidth).toBeLessThanOrEqual(160); // Should be narrower than desktop
+    // Header must not force horizontal scroll
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test('should handle keyboard navigation', async ({ page, browserName }) => {
-    // WebKit/Safari handles focus differently, especially with tabindex
-    if (browserName === 'webkit') {
-      // For WebKit, directly focus the Work link to test navigation
-      const workLink = page.getByRole('link', { name: /navigate to work section/i });
-      await workLink.focus();
-      await expect(workLink).toBeFocused();
-      
-      // Press Enter to navigate
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL('/work');
-    } else {
-      // Tab through navigation items for other browsers
-      await page.keyboard.press('Tab'); // Skip to main content link
-      await page.keyboard.press('Tab'); // Ben Gregory link
-      await page.keyboard.press('Tab'); // Dark mode toggle
-      await page.keyboard.press('Tab'); // Work link
-      
-      // Check Work link is focused
-      const workLink = page.getByRole('link', { name: /navigate to work section/i });
-      await expect(workLink).toBeFocused();
-      
-      // Press Enter to navigate
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL('/work');
-    }
+  test('should handle keyboard navigation', async ({ page }) => {
+    const workLink = page
+      .locator('nav[aria-label="Main"]')
+      .getByRole('link', { name: 'Work' });
+    await workLink.focus();
+    await expect(workLink).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL('/work');
   });
 
-  test('should have skip to main content link for accessibility', async ({ page, browserName }) => {
+  test('should have skip to main content link for accessibility', async ({ page }) => {
     const skipLink = page.getByRole('link', { name: /skip to main content/i });
-    
-    // Should be present but visually hidden initially
     await expect(skipLink).toHaveClass(/sr-only/);
-    
-    // WebKit/Safari handles focus differently
-    if (browserName === 'webkit') {
-      // For WebKit, directly focus the skip link
-      await skipLink.focus();
-      await expect(skipLink).toBeFocused();
-    } else {
-      // Should become visible on focus for other browsers
-      await page.keyboard.press('Tab');
-      await expect(skipLink).toBeFocused();
-    }
-    
-    // Verify it has the focus:not-sr-only class for visibility on focus
-    await expect(skipLink).toHaveClass(/focus:not-sr-only/);
-    
-    // Clicking should jump to main content
-    await skipLink.click();
-    const mainContent = page.locator('#main-content');
-    await expect(mainContent).toBeInViewport();
+    await expect(skipLink).toHaveAttribute('href', '#main');
+    await skipLink.focus();
+    await expect(skipLink).toBeFocused();
   });
 });

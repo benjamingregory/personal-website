@@ -6,10 +6,10 @@ import { motion } from "motion/react";
 import AnimatedThemeToggle from "./motion/AnimatedThemeToggle";
 import { cn } from "@/lib/utils";
 
-const NAV: Array<{ name: string; href: string; mobile?: boolean }> = [
-  { name: "Work", href: "/work", mobile: true },
-  { name: "Projects", href: "/projects", mobile: true },
-  { name: "Blog", href: "/blog", mobile: true },
+const NAV: Array<{ name: string; href: string }> = [
+  { name: "Work", href: "/work" },
+  { name: "Projects", href: "/projects" },
+  { name: "Blog", href: "/blog" },
   { name: "Education", href: "/education" },
 ];
 
@@ -23,7 +23,7 @@ export default function Header() {
         <Link
           href="/"
           aria-label="Home"
-          className="whitespace-nowrap font-display font-semibold tracking-tight text-foreground transition-colors hover:text-foreground/80"
+          className="whitespace-nowrap font-display text-sm font-semibold tracking-tight text-foreground transition-colors hover:text-foreground/80 sm:text-base"
         >
           Ben Gregory
         </Link>
@@ -36,8 +36,7 @@ export default function Header() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative rounded-md font-medium px-2 py-1.5 text-sm transition-colors sm:px-3",
-                  !item.mobile && "hidden sm:inline-flex",
+                  "relative rounded-md font-medium px-1 py-1.5 text-xs transition-colors sm:px-3 sm:text-sm",
                   active
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -47,7 +46,7 @@ export default function Header() {
                 {active && (
                   <motion.span
                     layoutId="nav-active"
-                    className="absolute inset-x-2 -bottom-px h-px bg-foreground sm:inset-x-3"
+                    className="absolute inset-x-1 -bottom-px h-px bg-foreground sm:inset-x-3"
                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
                   />
                 )}

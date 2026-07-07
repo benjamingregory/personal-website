@@ -46,16 +46,13 @@ export default async function Home() {
       {/* Hero */}
       <FadeUp as="section" className="relative pt-16 sm:pt-24 pb-10">
         <GradientHeroLazy />
-        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        <h1 className="font-mono text-xs font-normal uppercase tracking-wider text-muted-foreground">
           hi, there.
-        </p>
-        {/* <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">
-          Engineer, founder, and writer.
-        </h1> */}
+        </h1>
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
           I&rsquo;ve been building <Link target="_blank" href={"https://kasava.dev"} className="text-foreground">Kasava</Link>, an
           AI workflow tool for engineering teams. Before that I built <Link className="text-foreground" target="_blank" href={"https://joinmonroe.com"}>Monroe</Link>,
-          was a senior PM on the freight team at <Link className="text-foreground" target="_blank" href={"https://flexport.com"}>Flexport </Link>  (via Shopify, via
+          was a senior PM on the freight team at <Link className="text-foreground" target="_blank" href={"https://flexport.com"}>Flexport</Link>{" "}(via Shopify, via
           Deliverr), and was founding team at Astronomer. Stanford
           GSB &rsquo;21.
         </p>
@@ -87,7 +84,7 @@ export default async function Home() {
           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             Now
           </span>
-          <span className="text-xs text-muted-foreground/70">May 2026</span>
+          <span className="text-xs text-muted-foreground/70">July 2026</span>
         </div>
         <p className="mt-3 max-w-2xl text-base">
           Shipping Kasava&rsquo;s repo indexing pipeline and writing about what
@@ -149,8 +146,8 @@ export default async function Home() {
               "group flex items-baseline justify-between gap-6 py-3 transition-colors";
             const inner = (
               <>
-                <span className="flex items-baseline gap-1.5 truncate">
-                  <span className="anim-underline truncate text-sm text-foreground">
+                <span className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="anim-underline text-sm text-foreground">
                     {post.title}
                   </span>
                   {post.external && (

@@ -38,12 +38,12 @@ The post auto-appears in `/blog`, the home recent-writing list, the sitemap, and
 
 - `src/lib/posts.ts` walks `src/content/blog/`, parses frontmatter with `gray-matter`, and returns typed `Post[]` (in-process cached).
 - `[...slug]/page.tsx` finds the matching post, renders the editorial header (back link, title, description, mono metadata row, tags), then `<MDXRemote>` for the body.
-- `mdx-components.tsx` overrides custom components (currently just `<img>` to a Next `<Image>`).
+- `mdx-components.tsx` overrides `<img>` (to a Next `<Image>`) and `<h2>` (adds slugified anchor IDs consumed by the `SectionScrollSpy` TOC).
 - The blog post layout wraps every post in `<ReadingProgress />`, which is a scroll-linked spring bar at the top of the viewport.
 
 ## Frontmatter notes
 
-- **`tags` casing matters.** "AI" and "ai" are different tags in the index filter. Pick a casing convention for your tags and stick to it.
+- **`tags` are normalized to lowercase** in `src/lib/posts.ts`, so "AI" and "ai" are the same tag. Chips display uppercase via CSS. External posts in `src/lib/external-posts.ts` should use lowercase tags to match.
 - **`series`** groups parts together. A "More in this series" sidebar auto-renders on every post in the series.
 - **`published: false`** hides a post from listings and 404s the route.
 

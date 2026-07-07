@@ -18,17 +18,40 @@ test.describe('Blog', () => {
   });
 
   test('should display blog post metadata', async ({ page }) => {
-    // Look for date elements (common in blog posts)
-    const dates = page.locator('time, [class*="date"]');
+    // Each post row renders a "MMM d, yyyy" date
+    const dates = page.locator('text=/[A-Z][a-z]{2} \\d{1,2}, \\d{4}/');
     const dateCount = await dates.count();
     expect(dateCount).toBeGreaterThan(0);
-    
+
     // Check for blog post titles
-    const titles = page.locator('h2, h3').filter({ 
-      hasNot: page.locator('nav') 
+    const titles = page.locator('h2, h3').filter({
+      hasNot: page.locator('nav')
     });
     const titleCount = await titles.count();
     expect(titleCount).toBeGreaterThan(0);
+  });
+
+  test('should filter posts by tag without duplicate tag chips', async ({ page }) => {
+    const chipTexts = await page
+      .locator('button[aria-pressed]')
+      .allTextContents();
+    expect(chipTexts.length).toBeGreaterThan(1);
+
+    // No duplicate chips (tags are normalized to lowercase)
+    const unique = new Set(chipTexts.map((t) => t.trim().toLowerCase()));
+    expect(unique.size).toBe(chipTexts.length);
+
+    // Clicking a tag filters the list; "All" restores it
+    const allCount = await page.locator('main ul li').count();
+    const firstTag = page.locator('button[aria-pressed]').nth(1);
+    await firstTag.click();
+    await expect(firstTag).toHaveAttribute('aria-pressed', 'true');
+    await expect
+      .poll(async () => page.locator('main ul li').count())
+      .toBeLessThanOrEqual(allCount);
+
+    await page.locator('button[aria-pressed]').first().click();
+    await expect.poll(async () => page.locator('main ul li').count()).toBe(allCount);
   });
 
   test('should navigate to individual blog posts', async ({ page }) => {
@@ -132,9 +155,9 @@ test.describe('Blog', () => {
       await page.goto(post);
       await page.waitForLoadState('networkidle');
       
-      // Check sidebar is present
-      const sidebar = page.locator('nav[aria-label="Main navigation"]');
-      await expect(sidebar).toBeVisible();
+      // Check header nav is present
+      const nav = page.locator('nav[aria-label="Main"]');
+      await expect(nav).toBeVisible();
       
       // Check main content area is present
       const main = page.locator('main');

@@ -43,20 +43,11 @@ export const metadata: Metadata = {
     title: "Ben Gregory",
     description:
       "Engineer, founder, and writer. Currently building Kasava.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Ben Gregory",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Ben Gregory",
     description: "Engineer, founder, and writer.",
-    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,

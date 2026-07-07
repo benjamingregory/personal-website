@@ -12,11 +12,14 @@ Copy voice and banned phrasing live in [LANGUAGE_PATTERNS.md](./LANGUAGE_PATTERN
 
 ## Commands
 
-- `npm run dev` — start Turbopack dev server on http://localhost:3000
-- `npm run build` — production build
-- `npm run start` — start the built server
-- `npm run lint` — ESLint
-- `npm test` — Playwright E2E tests (`npm run test:headed`, `:debug`, `:ui`, `:report` variants)
+The package manager is **pnpm** (there is no `package-lock.json`; CI uses `pnpm install --frozen-lockfile`).
+
+- `pnpm dev` — start Turbopack dev server on http://localhost:3000
+- `pnpm build` — production build (runs `scripts/check-external-posts.mjs` first via `prebuild`)
+- `pnpm start` — start the built server
+- `pnpm lint` — ESLint (flat config in `eslint.config.mjs`)
+- `pnpm typecheck` — `tsc --noEmit`
+- `pnpm test` — Playwright E2E tests (`pnpm test:headed`, `:debug`, `:ui`, `:report` variants)
 
 ## Architecture
 
@@ -24,52 +27,65 @@ Copy voice and banned phrasing live in [LANGUAGE_PATTERNS.md](./LANGUAGE_PATTERN
 
 ```
 src/app/
-├── layout.tsx              # Root layout: <Header>, <PageTransition>{children}, <Footer>
-├── page.tsx                # Home (server) — hero, "now", selected work, recent writing
+├── layout.tsx              # Root layout: <Header>, <PageTransition>{children}, <Footer>, JSON-LD
+├── page.tsx                # Home (server) — hero (WebGL gradient), "now", selected work, recent writing
 ├── globals.css             # Tailwind v4 @theme + warm neutral tokens
+├── opengraph-image.tsx     # Generated 1200x630 OG/Twitter card (ImageResponse)
+├── icon.tsx / apple-icon.tsx  # Generated favicon + Apple touch icon
 ├── robots.ts
 ├── sitemap.ts              # Pulls posts from src/lib/posts.ts
 ├── work/page.tsx           # Server — timeline of roles
-├── projects/page.tsx       # Server — full project rows + animated stack toggle
+├── projects/
+│   ├── page.tsx            # Server — full project rows + carousel + animated stack toggle
+│   └── data.tsx            # Project registry (copy, stacks, ProjectMedia configs)
 ├── education/page.tsx      # Server — typographic list
 ├── chat/page.tsx           # Server shell that renders the AI-clone chat (see "Chat" below)
 ├── api/
-│   ├── chat/route.ts       # Mastra agent → AI SDK v5 streaming response
+│   ├── chat/route.ts       # Mastra agent → AI SDK streaming response
 │   └── tts/route.ts        # ElevenLabs streaming TTS proxy
 └── blog/
-    ├── page.tsx            # Server — pulls posts, hands to <BlogIndex>
+    ├── page.tsx            # Server — merges local posts + external Kasava posts, hands to <BlogIndex>
     └── [...slug]/
-        ├── page.tsx        # Server — renders MDX via next-mdx-remote/rsc
+        ├── page.tsx        # Server — renders MDX via next-mdx-remote/rsc + <SectionScrollSpy> TOC
         └── layout.tsx      # Wraps post in <ReadingProgress />
 ```
 
 ### Content
 
 - All MDX posts live in `src/content/blog/`. Flat posts: `src/content/blog/<slug>.mdx`. Series: `src/content/blog/<series>/<part>.mdx`.
-- Frontmatter: `title`, `date`, `description`, `tags?`, `series?`, `published?`. Parsed by `gray-matter`.
+- Frontmatter: `title`, `date`, `description`, `tags?`, `series?`, `published?`. Parsed by `gray-matter`. Tags are normalized to lowercase in `posts.ts`.
 - `src/lib/posts.ts` walks the content dir and returns typed `Post[]`. It caches in-process; no rebuild step.
-- MDX is rendered server-side via `next-mdx-remote/rsc`. Custom components in `src/mdx-components.tsx` (currently overrides `<img>` only).
+- `src/lib/external-posts.ts` is a hand-maintained registry of posts Ben wrote on kasava.dev. They're merged into `/blog`, the home recent-writing list, and the chat persona (each entry carries an `abstract` for the agent). `scripts/check-external-posts.mjs` (run on every `pnpm build` via `prebuild`) checks parity against a sibling Kasava checkout — it skips cleanly when the checkout is absent (e.g. CI); point it elsewhere with `KASAVA_BLOG_DIR`.
+- MDX is rendered server-side via `next-mdx-remote/rsc`. Custom components in `src/mdx-components.tsx`: `<img>` → Next `<Image>`, and `<h2>` → anchor IDs (via `src/lib/toc.ts` slugify) that `SectionScrollSpy` links to.
 
 ### Components
 
 ```
 src/components/
-├── Header.tsx              # "use client" — sticky top nav with motion active-underline
+├── Header.tsx              # "use client" — sticky top nav with motion active-underline; all links visible on mobile
 ├── Footer.tsx              # Server — single footer, all viewports
-├── JsonLd.tsx              # Structured data
-├── ui/                     # shadcn/ui — Button, Card, Badge (rarely used now)
-└── motion/                 # Motion primitives (all "use client", reduced-motion aware)
+├── JsonLd.tsx              # Structured data — server-rendered inline <script> tags
+├── ProjectMedia.tsx        # Server — auto-discovers public/projects/<slug>/*.webp, pairs -light/-dark variants
+├── ProjectCarousel.tsx     # "use client" — Embla carousel + thumbnail strip for multi-image projects
+├── ui/                     # shadcn/ui — Carousel (+ Button, used only by Carousel)
+├── webgl/
+│   ├── gradient-hero.tsx   # "use client" — Paper Shaders mesh-gradient hero layer
+│   ├── gradient-hero-lazy.tsx # dynamic({ssr:false}) wrapper — keeps shader out of the initial bundle
+│   └── flags.ts            # WEBGL_FX_ENABLED — kill switch via NEXT_PUBLIC_WEBGL_FX=off
+└── motion/                 # Motion primitives (client except HoverCard, reduced-motion aware)
     ├── FadeUp.tsx          # Section fade-up on viewport enter
     ├── PageTransition.tsx  # Route fade keyed on pathname
     ├── AnimatedThemeToggle.tsx
-    ├── HoverCard.tsx       # Card lift + arrow nudge on hover
+    ├── HoverCard.tsx       # Server — card lift + arrow nudge via CSS hover
     ├── StackToggle.tsx     # Project full-stack expand/collapse
     ├── ReadingProgress.tsx # Scroll-linked progress bar
     ├── BlogIndex.tsx       # Tag filter with FLIP layout animation
-    └── SectionScrollSpy.tsx # On-page TOC with active-section indicator (built; not currently wired)
+    └── SectionScrollSpy.tsx # On-page TOC with active-section indicator (wired into every blog post)
 ```
 
-All motion primitives respect `prefers-reduced-motion` via `useReducedMotion()` from `motion/react`. The motion package is the renamed Framer Motion — import from `motion/react`.
+Motion primitives respect `prefers-reduced-motion` via `useReducedMotion()` from `motion/react`. The motion package is the renamed Framer Motion — import from `motion/react`.
+
+Library code in `src/lib/`: `posts.ts` (MDX post loader), `external-posts.ts` (Kasava post registry), `toc.ts` (slugify + heading extraction for the scroll-spy TOC), `utils.ts` (`cn` classname helper).
 
 ### Styling
 
@@ -105,6 +121,8 @@ The `/chat` page hosts a voice-enabled AI clone of Ben. Architecture:
 src/mastra/
 ├── index.ts                 # Mastra instance + Ben agent (lazy singleton)
 ├── persona.ts               # Builds the system prompt from context/*.md + blog index
+├── tools/
+│   └── fetch-external-post.ts # Agent tool — fetches full text of a kasava.dev post (allowlisted URLs only)
 └── context/
     ├── boundaries.md        # Hard rules — overrides everything else
     ├── bio.md               # Career, education, where I'm from
@@ -122,18 +140,21 @@ src/components/chat/
 
 - LLM: Mastra agent on `anthropic/claude-sonnet-4-6` (model router string — `@mastra/core` reads `ANTHROPIC_API_KEY` automatically).
 - Guardrails: `PromptInjectionDetector` + `ModerationProcessor` from `@mastra/core/processors` run as `inputProcessors` on each request, both backed by Claude Haiku 4.5 (one extra Anthropic call each — minor latency + cost trade for safety on a public surface).
-- Streaming: `@mastra/ai-sdk`'s `handleChatStream` + `ai` v6's `createUIMessageStreamResponse`. Client uses `useChat` with `DefaultChatTransport`.
+- Tools: the agent has one tool, `fetchExternalPost`, which pulls the full text of a Kasava blog post on demand (exact allowlist from `external-posts.ts`; the persona embeds only abstracts).
+- Streaming: `@mastra/ai-sdk`'s `handleChatStream` + `ai` v7's `createUIMessageStreamResponse`. Client uses `useChat` (`@ai-sdk/react` v4) with `DefaultChatTransport`.
 - Voice in: browser-native `SpeechRecognition` (Chrome/Safari/Edge). Falls back to text input where unsupported.
 - Voice out: as text streams, sentences are extracted and POSTed to `/api/tts` which proxies ElevenLabs streaming TTS. Audio elements are queued and played sequentially. Mute toggle in the chat header drains the queue.
 - Persona system prompt is built once per process and cached.
 - The `boundaries.md` file is loaded first so its rules anchor the prompt.
 
-### Required env vars (set in Vercel + `.env.local`)
+### Env vars (set in Vercel + `.env.local`)
 
 ```
-ANTHROPIC_API_KEY=
-ELEVENLABS_API_KEY=
-ELEVENLABS_VOICE_ID=
+ANTHROPIC_API_KEY=        # required — chat agent + guardrails
+ELEVENLABS_API_KEY=       # required for voice out
+ELEVENLABS_VOICE_ID=      # required for voice out
+NEXT_PUBLIC_WEBGL_FX=on   # optional — set to "off" to disable the WebGL hero
+KASAVA_BLOG_DIR=          # optional, local only — overrides the sibling Kasava checkout path for the prebuild parity check
 ```
 
 See `.env.example` for the canonical list.
@@ -144,7 +165,8 @@ Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds
 
 ## Conventions
 
-- All page files except `Header`, `AnimatedThemeToggle`, and motion primitives are server components. Keep client-side surface small.
+- Default to server components. The only client components are `Header`, `AnimatedThemeToggle`, `ProjectCarousel`, `ChatInterface`, the WebGL hero, and the motion primitives (except `HoverCard`, which is server). Keep client-side surface small.
+- Project screenshots go in `public/projects/<slug>/` as ~1600px-wide WebP, named `<n>-light.webp` / `<n>-dark.webp` pairs (`hero-*` sorts first). `ProjectMedia` discovers them from the filesystem — no registry to update.
 - `@/*` path alias is the only one in `tsconfig.json`.
 - Don't add gradients, raw color hex, or shadcn defaults masquerading as design — the design language is editorial. See `DESIGN_PRINCIPLES.md`.
 - For new motion: respect §9 of the principles — band between Linear marketing and rauno.me, never crossing into magnetic/cursor/scroll-jack territory.
@@ -159,4 +181,4 @@ Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds
 
 - Hosted on Vercel.
 - `metadataBase` is `https://bengregory.com`.
-- TODO: add `/og-image.jpg` to `public/` (currently referenced by metadata but missing).
+- OG image, favicon, and Apple icon are generated at build time by `src/app/opengraph-image.tsx`, `icon.tsx`, and `apple-icon.tsx` — no static image files to maintain.

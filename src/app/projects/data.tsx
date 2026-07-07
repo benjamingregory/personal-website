@@ -197,6 +197,29 @@ export const PROJECTS: Project[] = [
     },
   },
   {
+    name: "PromptBuilder",
+    year: "2026",
+    pitch: "Fluent prompt construction for LLM agents.",
+    body: "A zero-dependency TypeScript library for composing system prompts with a chainable API. Define a section like error handling once, then include it in every agent instead of copy-pasting template literals. High-level generators emit protocols, lookup tables, and Anthropic-style XML tags as consistent markdown. Extracted from Kasava's multi-agent system; published on npm as @kasava/prompt-builder.",
+    site: "github.com/Kasava-AI/prompt-builder",
+    link: "https://github.com/Kasava-AI/prompt-builder",
+    primaryStack: ["TypeScript", "Zero dependencies", "npm"],
+    fullStack: {
+      Core: [
+        "TypeScript",
+        "Fluent builder API",
+        "Composable sections",
+        "XML semantic tags",
+      ],
+      Generators: [
+        "Protocols",
+        "Lookup tables",
+        "Confidence scales",
+        "Investigation strategies",
+      ],
+    },
+  },
+  {
     name: "Airflow Plugins",
     year: "2017 — 2019",
     pitch: "Open-data community for Apache Airflow.",

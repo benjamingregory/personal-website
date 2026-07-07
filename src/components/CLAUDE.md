@@ -6,16 +6,20 @@ Reusable React components. Most pages compose these; never duplicate component l
 
 ```
 components/
-├── Header.tsx              # Sticky top nav (client) — sole navigation surface
+├── Header.tsx              # Sticky top nav (client) — sole navigation surface; all links visible on mobile
 ├── Footer.tsx              # Single footer (server) — visible on all viewports
-├── JsonLd.tsx              # Structured-data wrappers (server)
-├── motion/                 # Motion primitives (all client; see motion/CLAUDE.md scope below)
-└── ui/                     # shadcn/ui primitives — Button, Card, Badge
+├── JsonLd.tsx              # Structured-data wrappers (server) — plain inline <script> tags
+├── ProjectMedia.tsx        # Server — discovers public/projects/<slug>/ media, pairs -light/-dark
+├── ProjectCarousel.tsx     # Client — Embla carousel + thumbnails, rendered by ProjectMedia
+├── chat/ChatInterface.tsx  # Client — the /chat UI (useChat, mic, TTS queue)
+├── webgl/                  # Client — Paper Shaders gradient hero + NEXT_PUBLIC_WEBGL_FX kill switch
+├── motion/                 # Motion primitives (client, except HoverCard)
+└── ui/                     # shadcn/ui primitives — Carousel (+ Button, only used by Carousel)
 ```
 
 ## Motion primitives
 
-Each is "use client" and respects `prefers-reduced-motion`. Import the runtime from `motion/react` (the renamed Framer Motion).
+Each respects `prefers-reduced-motion`. All are "use client" except `HoverCard`, which is a server component (CSS-only hover). Import the runtime from `motion/react` (the renamed Framer Motion).
 
 | Component | Purpose | When to use |
 |---|---|---|
@@ -26,7 +30,7 @@ Each is "use client" and respects `prefers-reduced-motion`. Import the runtime f
 | `StackToggle` | Animated expand/collapse for "show full stack" | Projects page |
 | `ReadingProgress` | Scroll-linked spring progress bar | Blog post layout (already wired) |
 | `BlogIndex` | Tag filter with FLIP layout animation on the post list | Blog index (already wired) |
-| `SectionScrollSpy` | On-page TOC w/ animated active marker | Optional — not currently wired |
+| `SectionScrollSpy` | On-page TOC w/ animated active marker | Blog posts (already wired via `blog/[...slug]/page.tsx`) |
 
 ## Conventions
 

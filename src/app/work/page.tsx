@@ -59,7 +59,7 @@ const ROLES: Array<{
       "Joined Deliverr at Series E to launch and grow domestic Freight to $15MM ARR. Acquired by Shopify in 2022; the division was acquired by Flexport in 2023.",
     highlights: [
       "Shipped a quoting tool that cut customer quote turnaround from 24 hours to 10 seconds.",
-      "Launched the Freight app inside Deliverr&rsquo;s seller portal — moved 65% of customers to self-serve, grew automated bookings 40% in three months.",
+      "Launched the Freight app inside Deliverr’s seller portal — moved 65% of customers to self-serve, grew automated bookings 40% in three months.",
     ],
   },
   {
