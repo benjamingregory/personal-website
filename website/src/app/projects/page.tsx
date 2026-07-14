@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: "Projects · Ben Gregory",
     description: "Selected projects across AI, developer tools, and infra",
     type: "website",
-    url: "https://bengregory.com/projects",
+    url: "https://www.benjaminrgregory.com/projects",
   },
 };
 

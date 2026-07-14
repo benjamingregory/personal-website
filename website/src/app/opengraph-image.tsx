@@ -47,7 +47,7 @@ export default function OpengraphImage() {
             color: "hsl(24, 6%, 42%)",
           }}
         >
-          <div>bengregory.com</div>
+          <div>benjaminrgregory.com</div>
           <div
             style={{
               width: 220,

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: "Education · Ben Gregory",
     description: "Stanford GSB, Venture for America, Washington University",
     type: "website",
-    url: "https://bengregory.com/education",
+    url: "https://www.benjaminrgregory.com/education",
   },
 };
 

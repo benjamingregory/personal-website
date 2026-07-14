@@ -34,11 +34,11 @@ export const metadata: Metadata = {
   keywords: ["Ben Gregory", "Software Engineer", "Founder", "Writer", "Kasava"],
   authors: [{ name: "Ben Gregory" }],
   creator: "Ben Gregory",
-  metadataBase: new URL("https://bengregory.com"),
+  metadataBase: new URL("https://www.benjaminrgregory.com"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://bengregory.com",
+    url: "https://www.benjaminrgregory.com",
     siteName: "Ben Gregory",
     title: "Ben Gregory",
     description:
@@ -80,13 +80,13 @@ export default function RootLayout({
         <WebSiteJsonLd
           name="Ben Gregory"
           description="Personal site of Ben Gregory — engineer, founder, and writer"
-          url="https://bengregory.com"
+          url="https://www.benjaminrgregory.com"
         />
         <PersonJsonLd
           name="Ben Gregory"
           jobTitle="Software Engineer"
           description="Engineer, founder, and writer"
-          url="https://bengregory.com"
+          url="https://www.benjaminrgregory.com"
           sameAs={[
             "https://github.com/benjamingregory",
             "https://www.linkedin.com/in/benjamin-gregory",

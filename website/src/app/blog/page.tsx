@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     description:
       "Notes on software engineering, product, and the things I'm building",
     type: "website",
-    url: "https://bengregory.com/blog",
+    url: "https://www.benjaminrgregory.com/blog",
   },
 };
 

@@ -26,7 +26,7 @@ export async function generateMetadata({
   const post = await getPost(slug.join("/"));
   if (!post) return { title: "Post Not Found" };
 
-  const canonicalUrl = `https://bengregory.com${post.url}`;
+  const canonicalUrl = `https://www.benjaminrgregory.com${post.url}`;
 
   return {
     title: post.title,
@@ -68,7 +68,7 @@ export default async function BlogPost({ params }: BlogPostProps) {
         title={post.title}
         description={post.description}
         date={post.date}
-        url={`https://bengregory.com${post.url}`}
+        url={`https://www.benjaminrgregory.com${post.url}`}
       />
       <div className="relative mx-auto max-w-7xl">
       <article className="mx-auto w-full max-w-2xl px-5 pb-16 pt-12 sm:px-8 sm:pt-16">

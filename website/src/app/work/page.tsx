@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     description:
       "Professional experience as a software engineer and product manager",
     type: "website",
-    url: "https://bengregory.com/work",
+    url: "https://www.benjaminrgregory.com/work",
   },
 };
 

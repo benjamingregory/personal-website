@@ -67,7 +67,7 @@ export const fetchExternalPost = createTool({
 
     try {
       const res = await fetch(meta.url, {
-        headers: { "user-agent": "bengregory.com chat persona" },
+        headers: { "user-agent": "benjaminrgregory.com chat persona" },
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) {
