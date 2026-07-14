@@ -1,6 +1,6 @@
 import type { ProjectDef } from "@/lib/projects";
 import type { Stat } from "@/lib/metrics/types";
-import { webAnalytics, type WebAnalytics } from "@/lib/posthog";
+import { webAnalytics, type Breakdown, type WebAnalytics } from "@/lib/posthog";
 import { Sparkline } from "./sparkline";
 
 function fmt(n: number | null | undefined): string {
@@ -28,6 +28,60 @@ function StatTile({ stat }: { stat: Stat }) {
       </div>
       {stat.hint && (
         <div className="mt-0.5 text-xs text-ink-dim">{stat.hint}</div>
+      )}
+    </div>
+  );
+}
+
+// Micro-label that opens each sub-row under the headline stats.
+function RowLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+      {children}
+    </div>
+  );
+}
+
+// Ranked list — top pages, referrers, product events. Long labels (URL paths,
+// snake_case event names) truncate rather than wrap, so rows stay one line and
+// the numbers keep a straight right edge.
+function BreakdownList({
+  title,
+  rows,
+  empty,
+}: {
+  title: string;
+  rows: Breakdown[] | undefined;
+  empty: string;
+}) {
+  // min-w-0 all the way down: a grid/flex item defaults to min-width:auto, so
+  // without it a long path would push the whole section wider than the phone.
+  return (
+    <div className="min-w-0">
+      <RowLabel>{title}</RowLabel>
+      {!rows || rows.length === 0 ? (
+        <p className="mt-3 text-xs text-ink-faint">{empty}</p>
+      ) : (
+        <ul className="mt-3 space-y-1.5">
+          {rows.map((row, i) => (
+            <li
+              key={`${row.label}-${i}`}
+              className="flex items-baseline gap-2 text-xs leading-relaxed"
+            >
+              <span className="min-w-0 truncate text-ink-dim" title={row.label}>
+                {row.label}
+              </span>
+              <span className="ml-auto shrink-0 tabular-nums text-ink">
+                {fmt(row.value)}
+              </span>
+              {row.hint && (
+                <span className="shrink-0 text-[10px] text-ink-faint">
+                  {row.hint}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -65,12 +119,18 @@ function AnalyticsLine({
     );
   }
   return (
-    <p className="text-xs text-ink-dim">
-      <span className="text-ink-faint">visits</span>{" "}
-      {fmt(analytics.visitors30d)} / 30d · {fmt(analytics.visitors7d)} / 7d ·{" "}
-      {fmt(analytics.pageviews30d)} views
-      {analytics.logins30d != null && ` · ${fmt(analytics.logins30d)} logins`}
-    </p>
+    <div className="space-y-1">
+      <p className="text-xs text-ink-dim">
+        <span className="text-ink-faint">visits</span>{" "}
+        {fmt(analytics.visitors30d)} / 30d · {fmt(analytics.visitors7d)} / 7d ·{" "}
+        {fmt(analytics.pageviews30d)} views
+        {analytics.logins30d != null && ` · ${fmt(analytics.logins30d)} logins`}
+      </p>
+      {/* Numbers here are lower than PostHog's own UI shows, on purpose. */}
+      <p className="text-[10px] text-ink-faint">
+        production hosts only · localhost and previews excluded
+      </p>
+    </div>
   );
 }
 
@@ -137,7 +197,7 @@ export async function ProjectSection({
         </p>
       </header>
 
-      <div className="content-start lg:col-span-6">
+      <div className="min-w-0 content-start lg:col-span-6">
         {report.error ? (
           <p className="text-sm text-err">{report.error}</p>
         ) : stats.length > 0 ? (
@@ -153,9 +213,7 @@ export async function ProjectSection({
         )}
         {report.usage && report.usage.length > 0 && (
           <div className="mt-8 border-t border-rule-soft pt-6">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-ink-faint">
-              llm usage
-            </div>
+            <RowLabel>llm usage</RowLabel>
             <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
               {report.usage.map((s) => (
                 <StatTile key={s.label} stat={s} />
@@ -163,9 +221,23 @@ export async function ProjectSection({
             </div>
           </div>
         )}
+        {analytics.configured && !analytics.error && (
+          <div className="mt-8 grid gap-x-8 gap-y-6 border-t border-rule-soft pt-6 sm:grid-cols-2">
+            <BreakdownList
+              title="top pages · 30d"
+              rows={analytics.topPages}
+              empty="no pageviews yet"
+            />
+            <BreakdownList
+              title="sources · 30d"
+              rows={analytics.sources}
+              empty="no referrers yet"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4 lg:col-span-3">
+      <div className="min-w-0 space-y-4 lg:col-span-3">
         {series && (
           <Sparkline
             points={series.points}
@@ -174,6 +246,15 @@ export async function ProjectSection({
           />
         )}
         <AnalyticsLine analytics={analytics} project={project} />
+        {analytics.configured && !analytics.error && (
+          <div className="border-t border-rule-soft pt-4">
+            <BreakdownList
+              title="product events · 30d"
+              rows={analytics.events}
+              empty="none instrumented yet"
+            />
+          </div>
+        )}
       </div>
     </section>
   );

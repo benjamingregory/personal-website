@@ -42,7 +42,19 @@ every component is a server component; sparklines are server-rendered SVG.
 - [src/lib/posthog.ts](src/lib/posthog.ts) — HogQL over PostHog's query API.
   Config per project: `POSTHOG_PROJECT_ID_<PROJECT>` + `POSTHOG_API_KEY`
   (or per-org `POSTHOG_API_KEY_<PROJECT>` override). Unconfigured → the
-  section says so instead of erroring.
+  section says so instead of erroring. Beyond the visitor/pageview totals it
+  returns three ranked breakdowns — top pages, referring sources, and product
+  events (any event not prefixed `$`) — rendered as `BreakdownList`s.
+  - **Everything is scoped to production hosts.** Local dev is the operator's
+    own machine, not a user; counting it makes a dead product look alive. Other
+    projects get `NOT LIKE 'localhost%'`; Jobflow and the personal site get an
+    exact-host allowlist (`PROJECT_HOSTS`), which excludes localhost for free.
+  - That allowlist is load-bearing, not stylistic: Jobflow and the personal site
+    **share one PostHog project**, and Jobflow is served from
+    `jobflow.benjaminrgregory.com` — a *subdomain of the personal site's own
+    apex*. Any `$host LIKE '%benjaminrgregory.com'` test therefore matches both
+    products (and this admin), silently filing Jobflow's traffic under the
+    personal site. Split them by exact host, never by suffix.
 - [src/lib/projects.ts](src/lib/projects.ts) — the registry. Adding a project =
   a metrics module + one entry here (name, descriptor, accent, env vars).
 - [src/app/page.tsx](src/app/page.tsx) — `force-dynamic`; each section streams
