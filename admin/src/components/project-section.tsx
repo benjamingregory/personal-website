@@ -24,7 +24,7 @@ function StatTile({ stat }: { stat: Stat }) {
         {stat.label}
       </div>
       <div className="mt-1 text-3xl tabular-nums text-ink">
-        {fmt(stat.value)}
+        {stat.display ?? fmt(stat.value)}
       </div>
       {stat.hint && (
         <div className="mt-0.5 text-xs text-ink-dim">{stat.hint}</div>
@@ -150,6 +150,18 @@ export async function ProjectSection({
           <p className="text-sm text-ink-faint">
             No sources wired for this project yet.
           </p>
+        )}
+        {report.usage && report.usage.length > 0 && (
+          <div className="mt-8 border-t border-rule-soft pt-6">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-ink-faint">
+              llm usage
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+              {report.usage.map((s) => (
+                <StatTile key={s.label} stat={s} />
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

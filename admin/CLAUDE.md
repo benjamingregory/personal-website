@@ -30,6 +30,15 @@ every component is a server component; sparklines are server-rendered SVG.
   Failures degrade to an inline error, never a crashed page.
   - Monroe's schema is Prisma-origin: PascalCase tables (`"User"`, `"UserShow"`)
     and camelCase timestamps (`"createdAt"`) must stay double-quoted.
+  - [llm-usage.ts](src/lib/metrics/llm-usage.ts) — LLM token counts + estimated
+    spend (30d / all-time), rendered as a per-section "llm usage" row. Kasava
+    and Monroe read Mastra observability spans (`mastra_ai_spans`,
+    `model_generation`/`model_inference`; `inputTokens` already includes cache
+    read/write); Monroe additionally reads `"LlmUsage"`, written by its
+    Workers API's instrumented Anthropic/OpenAI clients. Cost comes from the
+    per-MTok pricing map in that file — update it when models rotate. A
+    missing table (42P01) counts as zero usage, so sections stay up before
+    migrations land.
 - [src/lib/posthog.ts](src/lib/posthog.ts) — HogQL over PostHog's query API.
   Config per project: `POSTHOG_PROJECT_ID_<PROJECT>` + `POSTHOG_API_KEY`
   (or per-org `POSTHOG_API_KEY_<PROJECT>` override). Unconfigured → the

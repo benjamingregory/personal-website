@@ -1,6 +1,9 @@
 export interface Stat {
   label: string;
   value: number | null;
+  // Pre-formatted display value ("$4.12", "12.4M") — overrides the default
+  // toLocaleString rendering of `value`.
+  display?: string;
   // Small line under the number, e.g. "+4 past 7d".
   hint?: string;
 }
@@ -20,6 +23,8 @@ export interface ProjectReport {
   // null → the project's DATABASE_URL env var isn't set.
   configured: boolean;
   stats: Stat[];
+  // LLM token/cost tiles, rendered as their own row under the product stats.
+  usage?: Stat[];
   series: ActivitySeries | null;
   lastActivityAt: Date | null;
   error?: string;

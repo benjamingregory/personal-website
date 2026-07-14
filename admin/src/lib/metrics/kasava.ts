@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { mastraSpanUsage, usageStats } from "./llm-usage";
 import {
   failed,
   fillDays,
@@ -11,7 +12,7 @@ export async function kasavaMetrics(): Promise<ProjectReport> {
   if (!sql) return UNCONFIGURED;
 
   try {
-    const [users, entities, series, last] = await Promise.all([
+    const [users, entities, series, last, llm] = await Promise.all([
       sql`SELECT
             count(*)::int AS total,
             count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS new7,
@@ -29,6 +30,7 @@ export async function kasavaMetrics(): Promise<ProjectReport> {
           WHERE created_at >= now() - interval '30 days'
           GROUP BY 1 ORDER BY 1`,
       sql`SELECT max(created_at) AS at FROM intelligence_events`,
+      mastraSpanUsage(sql),
     ]);
 
     return {
@@ -47,6 +49,7 @@ export async function kasavaMetrics(): Promise<ProjectReport> {
         },
         { label: "integrations", value: entities[0].integrations },
       ],
+      usage: usageStats(llm.last30d, llm.allTime),
       series: {
         label: "intel events / day",
         points: fillDays(

@@ -1,5 +1,11 @@
 import { db } from "../db";
 import {
+  mastraSpanUsage,
+  mergeWindows,
+  monroeLlmUsageTable,
+  usageStats,
+} from "./llm-usage";
+import {
   failed,
   fillDays,
   UNCONFIGURED,
@@ -13,7 +19,8 @@ export async function monroeMetrics(): Promise<ProjectReport> {
   if (!sql) return UNCONFIGURED;
 
   try {
-    const [users, entities, active, series, last] = await Promise.all([
+    const [users, entities, active, series, last, spans, sdkCalls] =
+      await Promise.all([
       sql`SELECT
             count(*)::int AS total,
             count(*) FILTER (WHERE "createdAt" >= now() - interval '7 days')::int AS new7,
@@ -33,7 +40,12 @@ export async function monroeMetrics(): Promise<ProjectReport> {
           WHERE "createdAt" >= now() - interval '30 days'
           GROUP BY 1 ORDER BY 1`,
       sql`SELECT max("createdAt") AS at FROM "UserEpisode"`,
+      // Two usage sources: Mastra spans (app chat agent) + the LlmUsage
+      // table (raw Anthropic/OpenAI SDK calls in the Workers API).
+      mastraSpanUsage(sql),
+      monroeLlmUsageTable(sql),
     ]);
+    const llm = mergeWindows(spans, sdkCalls);
 
     return {
       configured: true,
@@ -55,6 +67,7 @@ export async function monroeMetrics(): Promise<ProjectReport> {
         },
         { label: "subscriptions", value: entities[0].subscriptions },
       ],
+      usage: usageStats(llm.last30d, llm.allTime),
       series: {
         label: "episodes logged / day",
         points: fillDays(

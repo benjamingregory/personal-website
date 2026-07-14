@@ -1,4 +1,4 @@
-import type { Sql } from "postgres";
+import type { Sql } from "../db";
 import type { Stat } from "./types";
 
 // Per-million-token USD rates. Cache reads bill at ~0.1x input, cache writes
@@ -167,12 +167,8 @@ export interface LlmUsageWindows {
 // Both kasava and monroe run Mastra with a Postgres store, so the table and
 // the attributes.usage shape are identical. Returns empty windows when the
 // table doesn't exist yet.
-export async function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {
-  const [{ ok }] = await sql<{ ok: boolean }[]>`
-    SELECT to_regclass('public.mastra_ai_spans') IS NOT NULL AS ok`;
-  if (!ok) return { last30d: [], allTime: [] };
-
-  const rows = await sql<SpanUsageRow[]>`
+export function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {
+  return orEmpty(sql<SpanUsageRow[]>`
     SELECT attributes->>'model' AS model,
            count(*)::int AS calls,
            sum((attributes->'usage'->>'inputTokens')::bigint) AS input,
@@ -191,23 +187,14 @@ export async function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {
     FROM mastra_ai_spans
     WHERE "spanType" IN ('model_generation', 'model_inference')
       AND attributes->'usage'->>'inputTokens' IS NOT NULL
-    GROUP BY 1`;
-
-  return {
-    last30d: rows.filter((r) => r.calls_30d > 0).map((r) => toUsage(r, "30d")),
-    allTime: rows.map((r) => toUsage(r, "all")),
-  };
+    GROUP BY 1`);
 }
 
 // Monroe's Cloudflare-Workers API records raw-SDK calls (Anthropic/OpenAI)
 // into "LlmUsage" — see monroe/api src/_utils/llm-usage.ts. Returns empty
 // windows until that table's migration lands.
-export async function monroeLlmUsageTable(sql: Sql): Promise<LlmUsageWindows> {
-  const [{ ok }] = await sql<{ ok: boolean }[]>`
-    SELECT to_regclass('public."LlmUsage"') IS NOT NULL AS ok`;
-  if (!ok) return { last30d: [], allTime: [] };
-
-  const rows = await sql<SpanUsageRow[]>`
+export function monroeLlmUsageTable(sql: Sql): Promise<LlmUsageWindows> {
+  return orEmpty(sql<SpanUsageRow[]>`
     SELECT model,
            count(*)::int AS calls,
            sum(input_tokens) AS input,
@@ -220,12 +207,7 @@ export async function monroeLlmUsageTable(sql: Sql): Promise<LlmUsageWindows> {
            sum(cache_read_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS cache_read_30d,
            sum(cache_write_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS cache_write_30d
     FROM "LlmUsage"
-    GROUP BY 1`;
-
-  return {
-    last30d: rows.filter((r) => r.calls_30d > 0).map((r) => toUsage(r, "30d")),
-    allTime: rows.map((r) => toUsage(r, "all")),
-  };
+    GROUP BY 1`);
 }
 
 export function mergeWindows(...windows: LlmUsageWindows[]): LlmUsageWindows {
@@ -233,4 +215,25 @@ export function mergeWindows(...windows: LlmUsageWindows[]): LlmUsageWindows {
     last30d: windows.flatMap((w) => w.last30d),
     allTime: windows.flatMap((w) => w.allTime),
   };
+}
+
+// undefined_table (42P01) → the source table's migration hasn't run in that
+// project yet; treat as no usage instead of failing the whole section.
+async function orEmpty(
+  query: Promise<SpanUsageRow[]>,
+): Promise<LlmUsageWindows> {
+  try {
+    const rows = await query;
+    return {
+      last30d: rows
+        .filter((r) => r.calls_30d > 0)
+        .map((r) => toUsage(r, "30d")),
+      allTime: rows.map((r) => toUsage(r, "all")),
+    };
+  } catch (error) {
+    if ((error as { code?: string })?.code === "42P01") {
+      return { last30d: [], allTime: [] };
+    }
+    throw error;
+  }
 }
