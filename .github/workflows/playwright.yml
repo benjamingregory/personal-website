@@ -10,18 +10,24 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
+      with:
+        package_json_file: website/package.json
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '24'
         cache: 'pnpm'
+        cache-dependency-path: website/pnpm-lock.yaml
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
@@ -43,7 +49,7 @@ jobs:
       if: always()
       with:
         name: playwright-report
-        path: playwright-report/
+        path: website/playwright-report/
         retention-days: 30
 
     - name: Upload test videos
@@ -51,5 +57,5 @@ jobs:
       if: failure()
       with:
         name: test-results
-        path: test-results/
+        path: website/test-results/
         retention-days: 7

@@ -18,7 +18,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 const publishedDir =
   process.env.KASAVA_BLOG_DIR ??
-  path.resolve(repoRoot, "../kasava/marketing/blogs/published");
+  path.resolve(repoRoot, "../../kasava/marketing/blogs/published");
 
 const externalPostsFile = path.join(repoRoot, "src/lib/external-posts.ts");
 
