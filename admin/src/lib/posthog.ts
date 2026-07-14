@@ -18,6 +18,15 @@ export interface WebAnalytics {
 // as they get instrumented, e.g. MONROE: "user_signed_in".
 const LOGIN_EVENTS: Partial<Record<PosthogProject, string>> = {};
 
+// Jobflow and the personal site share one PostHog project (free-tier account),
+// so their sections split the same event stream by host. Projects with their
+// own PostHog project need no entry. Drop these once that account gets
+// separate projects.
+const HOST_FILTERS: Partial<Record<PosthogProject, string>> = {
+  WEBSITE: "properties.$host LIKE '%benjaminrgregory.com'",
+  JOBFLOW: "properties.$host NOT LIKE '%benjaminrgregory.com'",
+};
+
 interface Config {
   projectId: string;
   apiKey: string;
@@ -62,6 +71,8 @@ export async function webAnalytics(
   if (!cfg) return { configured: false };
 
   const loginEvent = LOGIN_EVENTS[project];
+  const hostFilter = HOST_FILTERS[project];
+  const hostAnd = hostFilter ? ` AND ${hostFilter}` : "";
   try {
     const [totals, daily] = await Promise.all([
       hogql(
@@ -73,13 +84,13 @@ export async function webAnalytics(
            ${loginEvent ? `, countIf(event = '${loginEvent}')` : ""}
          FROM events
          WHERE (event = '$pageview' ${loginEvent ? `OR event = '${loginEvent}'` : ""})
-           AND timestamp >= now() - INTERVAL 30 DAY`,
+           AND timestamp >= now() - INTERVAL 30 DAY${hostAnd}`,
       ),
       hogql(
         cfg,
         `SELECT toDate(timestamp) AS day, uniq(person_id) AS visitors
          FROM events
-         WHERE event = '$pageview' AND timestamp >= now() - INTERVAL 30 DAY
+         WHERE event = '$pageview' AND timestamp >= now() - INTERVAL 30 DAY${hostAnd}
          GROUP BY day ORDER BY day`,
       ),
     ]);
