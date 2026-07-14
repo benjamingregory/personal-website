@@ -14,11 +14,12 @@ import { MeshGradient } from "@paper-design/shaders-react";
  * Reduced-motion freezes it (speed 0).
  */
 
-// Cream to amber — visibly warm, high-chroma stops. Saturation is what keeps
-// the wash clean: vivid golds blend into more gold, while pale desaturated
-// tans blend into gray-brown mud. The deepest amber at the 0.6 light-mode
-// opacity blends to ~#F5D4A3 over the paper — 4.7:1 against muted ink.
-const LIGHT_COLORS = ["#fdf3dd", "#f6d99b", "#fbeac6", "#f0bb6f"];
+// Beige / tan, wide range — tan and camel highlights down to saddle-brown
+// shadows. The wide lightness spread is what keeps low-chroma tan reading
+// as suede rather than khaki mud: depth, not a flat midtone band. The
+// darkest brown at the 0.35 light-mode intensity blends to ~#BAAFA2 —
+// ~5.1:1 against the muted ink, so a notch of shadow headroom remains.
+const LIGHT_COLORS = ["#cdb691", "#e8d5b5", "#4a3020", "#6f4e33"];
 // Low-luminance embers — warm depth over near-black, never white.
 const DARK_COLORS = ["#241d14", "#33271a", "#1b1610", "#3e2f1c"];
 
@@ -41,14 +42,14 @@ function useIsDark() {
 export default function GradientHero({ intensity }: { intensity?: number }) {
   const reduced = useReducedMotion();
   const dark = useIsDark();
-  // Dark embers can run hotter than light sand: text over the light wash is
-  // mid-gray muted ink, so the light ceiling is a contrast constraint.
-  const opacity = intensity ?? (dark ? 0.7 : 0.5);
+  // The light ceiling is a contrast constraint: muted ink must hold 4.5:1
+  // over the wash's deepest stop (see LIGHT_COLORS). Recheck if raising.
+  const opacity = intensity ?? (dark ? 0.7 : 0.35);
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 -top-14 -z-10 h-[250%] w-screen -translate-x-1/2"
+      className="pointer-events-none absolute left-1/2 -top-14 -z-10 h-[400%] w-screen -translate-x-1/2"
       style={{
         opacity,
         maskImage: MASK,

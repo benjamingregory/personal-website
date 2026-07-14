@@ -49,14 +49,15 @@
 
 @layer base {
   :root {
-    /* Warm neutral palette — off-white surfaces, near-black ink */
-    --background: 48 33% 99%;
+    /* Warm palette — ivory paper (Anthropic-style #FAF9F5), near-black ink */
+    --background: 48 33% 97%;
     --foreground: 24 10% 10%;
 
     --muted: 48 14% 95%;
-    /* 36% (not 42%) so small muted text clears 4.5:1 over the hero wash's
-       warmest sand pixels at its 0.5 light-mode intensity. */
-    --muted-foreground: 24 6% 36%;
+    /* Dark enough that small muted text clears 4.5:1 under the hero wash's
+       darkest bronze pixels at its 0.42 light-mode intensity (see
+       gradient-hero.tsx — these two values move together). */
+    --muted-foreground: 24 6% 24%;
 
     --card: 0 0% 100%;
     --card-foreground: 24 10% 10%;
@@ -76,8 +77,9 @@
     --destructive: 0 70% 50%;
     --destructive-foreground: 48 33% 99%;
 
-    --border: 48 14% 88%;
-    --input: 48 14% 88%;
+    /* A step below the oat paper so hairlines don't vanish into it. */
+    --border: 48 16% 80%;
+    --input: 48 16% 80%;
     --ring: 24 10% 25%;
     --radius: 0.5rem;
   }
