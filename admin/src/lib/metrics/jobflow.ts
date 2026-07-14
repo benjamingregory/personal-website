@@ -12,11 +12,14 @@ export async function jobflowMetrics(): Promise<ProjectReport> {
 
   try {
     const [users, evals, apps, series, last] = await Promise.all([
+      // Join auth.users so orphaned profiles left behind by E2E test runs
+      // (auth account deleted, profile row not) never inflate the count.
       sql`SELECT
             count(*)::int AS total,
-            count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS new7,
-            count(*) FILTER (WHERE created_at >= now() - interval '30 days')::int AS new30
-          FROM user_profiles`,
+            count(*) FILTER (WHERE up.created_at >= now() - interval '7 days')::int AS new7,
+            count(*) FILTER (WHERE up.created_at >= now() - interval '30 days')::int AS new30
+          FROM user_profiles up
+          JOIN auth.users au ON au.id = up.user_id`,
       sql`SELECT
             count(*)::int AS total,
             count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS new7
