@@ -1,3 +1,43 @@
+import type { LlmUsageWindows } from "./llm-usage";
+import type { Breakdown } from "../posthog";
+
+// One titled ranked list in a project's drill-down "product" section —
+// per-project shape (jobflow: applications by status; monroe: top shows…).
+export interface ProductBreakdown {
+  title: string;
+  rows: Breakdown[];
+}
+
+export type CheckStatus = "ok" | "warn" | "err";
+
+// Sections of a project's drill-down page, in render order. Checks carry one
+// so the alert row can deep-link from symptom to evidence.
+export type DetailSection =
+  | "checks"
+  | "activity"
+  | "traffic"
+  | "errors"
+  | "llm"
+  | "deploys"
+  | "product";
+
+// One named health probe on a project — the unit the status strip, the alert
+// row, and each card header aggregate from. Green checks stay silent in the
+// UI; only warn/err surface.
+export interface Check {
+  name: "db" | "pulse" | "deploy" | "errors" | "spend" | "posthog";
+  status: CheckStatus;
+  detail: string;
+  // Where the evidence lives on the project's drill-down page.
+  section: DetailSection;
+}
+
+export function worstStatus(checks: Check[]): CheckStatus {
+  if (checks.some((c) => c.status === "err")) return "err";
+  if (checks.some((c) => c.status === "warn")) return "warn";
+  return "ok";
+}
+
 export interface Stat {
   label: string;
   value: number | null;
@@ -22,11 +62,19 @@ export interface ActivitySeries {
 export interface ProjectReport {
   // null → the project's DATABASE_URL env var isn't set.
   configured: boolean;
+  // Card-face headline numbers. Keep to three — the card appends the LLM
+  // spend tile as the fourth when `llm` is present.
   stats: Stat[];
-  // LLM token/cost tiles, rendered as their own row under the product stats.
-  usage?: Stat[];
+  // Detail-only counts rendered inside the drill-down, not on the card face.
+  more?: Stat[];
+  // Raw per-model usage windows. The card derives the spend tile, the
+  // weekly spend-guardrail check, and the per-model table from these.
+  llm?: LlmUsageWindows;
   series: ActivitySeries | null;
   lastActivityAt: Date | null;
+  // Wall-clock ms the project's DB round-trips took — set by the snapshot
+  // loader, consumed by the slow-db check and the card's header meta.
+  latencyMs?: number;
   error?: string;
 }
 

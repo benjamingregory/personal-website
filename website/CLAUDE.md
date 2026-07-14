@@ -29,11 +29,13 @@ The package manager is **pnpm** (there is no `package-lock.json`; CI uses `pnpm 
 src/app/
 ├── layout.tsx              # Root layout: <Header>, <PageTransition>{children}, <Footer>, JSON-LD
 ├── page.tsx                # Home (server) — hero (WebGL gradient), "now", selected work, recent writing
+├── not-found.tsx           # Designed 404 — home link + three recent posts
 ├── globals.css             # Tailwind v4 @theme + warm neutral tokens
 ├── opengraph-image.tsx     # Generated 1200x630 OG/Twitter card (ImageResponse)
 ├── icon.tsx / apple-icon.tsx  # Generated favicon + Apple touch icon
 ├── robots.ts
 ├── sitemap.ts              # Pulls posts from src/lib/posts.ts
+├── feed.xml/route.ts       # RSS 2.0 feed — internal + external posts
 ├── work/page.tsx           # Server — timeline of roles
 ├── projects/
 │   ├── page.tsx            # Server — full project rows + carousel + animated stack toggle
@@ -169,7 +171,7 @@ Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds
 - Default to server components. The only client components are `Header`, `AnimatedThemeToggle`, `ProjectCarousel`, `ChatInterface`, the WebGL hero, and the motion primitives (except `HoverCard`, which is server). Keep client-side surface small.
 - Project screenshots go in `public/projects/<slug>/` as ~1600px-wide WebP, named `<n>-light.webp` / `<n>-dark.webp` pairs (`hero-*` sorts first). `ProjectMedia` discovers them from the filesystem — no registry to update.
 - `@/*` path alias is the only one in `tsconfig.json`.
-- Don't add gradients, raw color hex, or shadcn defaults masquerading as design — the design language is editorial. See `DESIGN_PRINCIPLES.md`.
+- Don't add gradients, raw color hex, or shadcn defaults masquerading as design — the design language is editorial. The one sanctioned exception is the hero wash (`webgl/gradient-hero.tsx`), governed by DESIGN_PRINCIPLES §4. See `DESIGN_PRINCIPLES.md`.
 - For new motion: respect §9 of the principles — band between Linear marketing and rauno.me, never crossing into magnetic/cursor/scroll-jack territory.
 - For any user-facing copy, follow `LANGUAGE_PATTERNS.md` — banned words, banned filler openers ("Here's the thing", "Let's be honest", etc.), and the required moves (name the artifact, mechanism follows claim, sparingly em-dash).
 
@@ -181,5 +183,5 @@ Edit the `.md` files in `src/mastra/context/`. The cached system prompt rebuilds
 ## Deploy
 
 - Hosted on Vercel.
-- `metadataBase` is `https://bengregory.com`.
+- `metadataBase` is `https://www.benjaminrgregory.com`.
 - OG image, favicon, and Apple icon are generated at build time by `src/app/opengraph-image.tsx`, `icon.tsx`, and `apple-icon.tsx` — no static image files to maintain.

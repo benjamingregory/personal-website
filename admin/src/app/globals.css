@@ -19,30 +19,13 @@
   --font-mono: var(--font-jetbrains);
 }
 
+/* clip, not hidden — no new scroll container, just no sideways page. */
+html,
+body {
+  overflow-x: clip;
+}
+
 ::selection {
   background: var(--color-ink);
   color: var(--color-ground);
-}
-
-/* Staggered section reveal on load. */
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.section-enter {
-  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--stagger, 0) * 80ms);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .section-enter {
-    animation: none;
-  }
 }

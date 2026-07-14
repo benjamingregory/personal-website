@@ -17,7 +17,19 @@ let mastraPromise: Promise<Mastra> | null = null;
 export function getMastra(): Promise<Mastra> {
   if (!mastraPromise) {
     mastraPromise = (async () => {
-      const instructions = await buildSystemPrompt();
+      const persona = await buildSystemPrompt();
+      // The persona is static per process (~200KB of context + posts) — mark it
+      // ephemeral so Anthropic caches it across requests instead of re-reading
+      // ~50k input tokens on every message.
+      const instructions = [
+        {
+          role: "system" as const,
+          content: persona,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" as const } },
+          },
+        },
+      ];
       const ben = new Agent({
         id: BEN_AGENT_ID,
         name: "Ben Gregory",

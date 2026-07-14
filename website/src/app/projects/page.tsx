@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Projects",
   description:
     "Selected projects — AI-powered platforms, developer tools, and infrastructure built across web, mobile, and desktop.",
+  alternates: { canonical: "/projects" },
   openGraph: {
     title: "Projects · Ben Gregory",
     description: "Selected projects across AI, developer tools, and infra",

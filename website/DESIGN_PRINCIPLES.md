@@ -130,6 +130,15 @@ When you're tempted to add color, ask: would this work as the accent at a differ
 
 Off-white / warm-tinted near-black surfaces (hue ~48° in HSL) read as intentional and premium. Pure `slate-*`/`zinc-*` reads as Tailwind-default.
 
+### The one ambient layer
+
+The home hero runs a warm mesh-gradient wash (`components/webgl/gradient-hero.tsx`) — the single sanctioned exception to the no-decorative-gradients rule. Its constraints are what make it an exception rather than a hole in the rule:
+
+- **One per site**, anchored to the hero. It always ends in a fade, never a seam (the mask reaches full transparency before the canvas edge), and no other surface gets a gradient.
+- **Warm-neutral only** — sand tones over the light paper, embers over the dark. Never a chromatic accent, never purple/blue.
+- **Contrast is non-negotiable.** All text over the wash keeps ≥4.5:1 at the wash's warmest pixel. Light mode caps intensity (currently 0.5) and `--muted-foreground` is tuned against it; re-verify both if either changes.
+- **It is the page's one infinite animation** (see §9). Reduced-motion freezes it; `NEXT_PUBLIC_WEBGL_FX=off` kills it entirely.
+
 ### Status colors used sparingly
 
 Reserved for actual semantic moments (a "now" indicator, an inline alert in a post). Not decoration.
@@ -199,7 +208,7 @@ Compact typographic list. Three rows. No card needed. Don't try to dress it up.
 
 ## 7. Imagery Earns Its Place
 
-Every image must do work: a screenshot that clarifies what a project looks like, a logo that aids recognition, a single portrait that humanizes the site. **No stock illustrations. No emoji-as-illustration. No abstract gradients.**
+Every image must do work: a screenshot that clarifies what a project looks like, a logo that aids recognition, a single portrait that humanizes the site. **No stock illustrations. No emoji-as-illustration. No abstract gradient images** (the live hero wash is governed by §4, not this rule).
 
 ### Required
 
@@ -244,9 +253,11 @@ Motion makes a content site feel alive without requiring the user to think about
 | Page route change | Fade ≤200ms; no slide-ins, no overlays | 200ms |
 | Tag filter / sort change | FLIP layout animation on the affected list | 250ms |
 | Scroll-linked indicators (e.g. reading progress bar on posts) | Direct mapping, no spring | n/a |
+| Ambient hero wash (§4 — the only one) | Slow drift, shader speed ≤0.35 | continuous |
 
 ### Hard constraints
 
+- **One infinite ambient animation per page — the hero wash (§4).** Everything else runs on interaction or entrance and then settles. A second always-running loop (spinning borders, drifting blobs, marquees) competes with the first and reads as noise.
 - **One hover effect per element.** Don't combine lift + color + scale.
 - **No scroll-jacking, no parallax beyond a token amount, no cursor effects.** These cross the rauno line.
 - **No bounce / spring overshoot on UI elements.** Springs are fine for *layout* transitions (FLIP, drawers); not for hover feedback.

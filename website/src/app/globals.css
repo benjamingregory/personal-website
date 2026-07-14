@@ -54,7 +54,9 @@
     --foreground: 24 10% 10%;
 
     --muted: 48 14% 95%;
-    --muted-foreground: 24 6% 42%;
+    /* 36% (not 42%) so small muted text clears 4.5:1 over the hero wash's
+       warmest sand pixels at its 0.5 light-mode intensity. */
+    --muted-foreground: 24 6% 36%;
 
     --card: 0 0% 100%;
     --card-foreground: 24 10% 10%;
@@ -145,6 +147,18 @@
 }
 
 @layer components {
+  /* Entrance fade-up as pure CSS so server-rendered content paints without
+     waiting for hydration (see components/motion/FadeUp.tsx). `both` keeps
+     delayed sections hidden only during their stagger delay. */
+  .anim-fade-up {
+    animation: fade-up 0.45s var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-fade-up {
+      animation: none;
+    }
+  }
+
   /* Editorial underline that grows from left to right */
   .anim-underline {
     background-image: linear-gradient(currentColor, currentColor);
@@ -164,8 +178,10 @@
   }
 
   /* Comet sweep — a bright arc rotates along the border edge.
-     ::before draws the masked ring; ::after adds an outer halo so the
-     leading edge feels like a charge passing through the metal. */
+     Hover/focus-gated: the hero wash is the page's one ambient loop
+     (DESIGN_PRINCIPLES §9), so the comet only runs while the CTA has
+     attention. The halo is dark-mode only — a near-black glow reads as a
+     smudge on light paper. */
   .electric-border {
     position: relative;
   }
@@ -192,8 +208,19 @@
       linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    animation: electric-spin 6s linear infinite;
+    opacity: 0;
+    transition: opacity 200ms var(--ease-out);
+    animation: electric-spin 3s linear infinite;
+    animation-play-state: paused;
     pointer-events: none;
+  }
+  .electric-border:hover::before,
+  .electric-border:focus-visible::before,
+  .electric-border:focus-within::before {
+    opacity: 1;
+    animation-play-state: running;
+  }
+  .dark .electric-border::before {
     filter: drop-shadow(0 0 6px hsl(var(--foreground) / 0.35));
   }
   @media (prefers-reduced-motion: reduce) {
@@ -214,5 +241,16 @@
 @keyframes electric-spin {
   to {
     --beam-angle: 360deg;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

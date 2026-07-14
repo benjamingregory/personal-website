@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
@@ -16,9 +17,24 @@ const NAV: Array<{ name: string; href: string }> = [
 export default function Header() {
   const pathname = usePathname();
   const top = "/" + (pathname.split("/")[1] || "");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-transparent">
+    <header
+      className={cn(
+        "sticky top-0 z-40 w-full transition-colors duration-200",
+        scrolled
+          ? "border-b border-border/60 bg-background/80 backdrop-blur-sm"
+          : "border-b border-transparent bg-transparent",
+      )}
+    >
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-5 sm:px-8">
         <Link
           href="/"

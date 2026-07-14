@@ -35,6 +35,9 @@ export const metadata: Metadata = {
   authors: [{ name: "Ben Gregory" }],
   creator: "Ben Gregory",
   metadataBase: new URL("https://www.benjaminrgregory.com"),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -75,6 +78,12 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: setInitialTheme }} />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="Ben Gregory — writing"
+          href="/feed.xml"
+        />
       </head>
       <body className="min-h-dvh bg-background text-foreground">
         <WebSiteJsonLd

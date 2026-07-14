@@ -1,14 +1,18 @@
 import { db } from "../db";
 import {
+  foldDailySpend,
+  mastraDailySpend,
   mastraSpanUsage,
   mergeWindows,
+  monroeDailySpend,
   monroeLlmUsageTable,
-  usageStats,
 } from "./llm-usage";
 import {
   failed,
   fillDays,
   UNCONFIGURED,
+  type ActivitySeries,
+  type ProductBreakdown,
   type ProjectReport,
 } from "./types";
 
@@ -45,7 +49,6 @@ export async function monroeMetrics(): Promise<ProjectReport> {
       mastraSpanUsage(sql),
       monroeLlmUsageTable(sql),
     ]);
-    const llm = mergeWindows(spans, sdkCalls);
 
     return {
       configured: true,
@@ -56,18 +59,21 @@ export async function monroeMetrics(): Promise<ProjectReport> {
           hint: `+${users[0].new7} past 7d`,
         },
         {
-          label: "shows tracked",
-          value: entities[0].shows_tracked,
-          hint: `${entities[0].lists} lists`,
-        },
-        {
           label: "episodes",
           value: entities[0].episodes_watched,
           hint: `${active[0].active7} active / 7d`,
         },
         { label: "subscriptions", value: entities[0].subscriptions },
       ],
-      usage: usageStats(llm.last30d, llm.allTime),
+      more: [
+        {
+          label: "shows tracked",
+          value: entities[0].shows_tracked,
+          hint: `${entities[0].lists} lists`,
+        },
+        { label: "new users 30d", value: users[0].new30 },
+      ],
+      llm: mergeWindows(spans, sdkCalls),
       series: {
         label: "episodes logged / day",
         points: fillDays(
@@ -78,5 +84,75 @@ export async function monroeMetrics(): Promise<ProjectReport> {
     };
   } catch (error) {
     return failed(error);
+  }
+}
+
+interface LabeledRow {
+  label: string;
+  value: number;
+}
+
+// ── Drill-down loaders (/monroe page) ───────────────────────────────────────
+
+export async function monroeSeries90(): Promise<ActivitySeries | null> {
+  const sql = db("MONROE_DATABASE_URL");
+  if (!sql) return null;
+  try {
+    const rows = await sql`
+      SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
+             count(*)::int AS value
+      FROM "UserEpisode"
+      WHERE "createdAt" >= now() - interval '90 days'
+      GROUP BY 1 ORDER BY 1`;
+    return {
+      label: "episodes logged / day",
+      points: fillDays(
+        rows.map((r) => ({ day: r.day as string, value: r.value as number })),
+        90,
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function monroeProduct(): Promise<ProductBreakdown[]> {
+  const sql = db("MONROE_DATABASE_URL");
+  if (!sql) return [];
+  try {
+    const [topShows, ratings] = await Promise.all([
+      sql<LabeledRow[]>`SELECT s.name AS label, count(*)::int AS value
+          FROM "UserEpisode" ue
+          JOIN "UserShow" us ON ue.user_show_id = us.id
+          JOIN "Show" s ON us.show_id = s.id
+          WHERE ue."createdAt" >= now() - interval '30 days'
+          GROUP BY 1 ORDER BY 2 DESC LIMIT 10`,
+      sql<LabeledRow[]>`SELECT 'rated ' || rating AS label, count(*)::int AS value
+          FROM "UserEpisode"
+          WHERE rating IS NOT NULL
+          GROUP BY rating ORDER BY rating DESC`,
+    ]);
+    const rows = (r: LabeledRow[]) =>
+      r.map((x) => ({ label: String(x.label), value: Number(x.value) }));
+    return [
+      { title: "top shows by episodes · 30d", rows: rows(topShows) },
+      { title: "ratings given · all-time", rows: rows(ratings) },
+    ];
+  } catch {
+    return [];
+  }
+}
+
+export async function monroeLlmDaily() {
+  const sql = db("MONROE_DATABASE_URL");
+  if (!sql) return null;
+  try {
+    const [spans, sdk] = await Promise.all([
+      mastraDailySpend(sql),
+      monroeDailySpend(sql),
+    ]);
+    return foldDailySpend(spans, sdk);
+  } catch {
+    return null;
   }
 }

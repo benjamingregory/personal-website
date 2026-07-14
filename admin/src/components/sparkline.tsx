@@ -1,9 +1,11 @@
 import type { DailyPoint } from "@/lib/metrics/types";
 
-const W = 240;
-const H = 56;
+// Flat aspect (~9:1) so the sparkline stays a strip, not a chart, at full
+// card width.
+const W = 480;
+const H = 52;
 const PLOT_TOP = 6;
-const PLOT_BOTTOM = 44;
+const PLOT_BOTTOM = 42;
 
 function fmtDay(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -16,15 +18,18 @@ function fmtDay(iso: string): string {
 
 // Server-rendered single-series sparkline. Identity lives in the accent
 // stroke; all text stays in ink tokens. Native <title> tooltips give a
-// per-day readout without client JS.
+// per-day readout without client JS. `prefix` renders before every value
+// ("$" for spend series); the window label follows the series length.
 export function Sparkline({
   points,
   label,
   accent,
+  prefix = "",
 }: {
   points: DailyPoint[];
   label: string;
   accent: string;
+  prefix?: string;
 }) {
   const max = Math.max(...points.map((p) => p.value), 1);
   const step = W / Math.max(points.length - 1, 1);
@@ -46,7 +51,8 @@ export function Sparkline({
           {label}
         </span>
         <span className="text-xs tabular-nums text-ink-dim">
-          {total.toLocaleString("en-US")} / 30d
+          {prefix}
+          {total.toLocaleString("en-US")} / {points.length}d
         </span>
       </figcaption>
       <svg
@@ -89,7 +95,7 @@ export function Sparkline({
             height={H}
             fill="transparent"
           >
-            <title>{`${fmtDay(p.day)} — ${p.value.toLocaleString("en-US")}`}</title>
+            <title>{`${fmtDay(p.day)} — ${prefix}${p.value.toLocaleString("en-US")}`}</title>
           </rect>
         ))}
       </svg>
@@ -97,12 +103,14 @@ export function Sparkline({
         <span>{points.length ? fmtDay(points[0].day) : ""}</span>
         <span>
           {lastPoint
-            ? `${fmtDay(lastPoint.day)} · ${lastPoint.value.toLocaleString("en-US")}`
+            ? `${fmtDay(lastPoint.day)} · ${prefix}${lastPoint.value.toLocaleString("en-US")}`
             : ""}
         </span>
       </div>
       {total === 0 && (
-        <p className="mt-1 text-xs text-ink-faint">quiet — nothing in 30d</p>
+        <p className="mt-1 text-xs text-ink-faint">
+          quiet — nothing in {points.length}d
+        </p>
       )}
     </figure>
   );

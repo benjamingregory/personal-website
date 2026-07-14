@@ -1,5 +1,5 @@
 import type { Sql } from "../db";
-import type { Stat } from "./types";
+import { fillDays, type Stat } from "./types";
 
 // Per-million-token USD rates. Cache reads bill at ~0.1x input, cache writes
 // at 1.25x input (5-minute TTL). Longest-prefix match against the model id
@@ -92,7 +92,18 @@ function windowOf(rows: ModelUsage[]): UsageWindow {
   };
 }
 
-// Three tiles: calls, tokens, estimated spend — each 30d with all-time hint.
+// Card-face tile: estimated 30d spend with the all-time figure as the hint.
+export function spendTile(w: LlmUsageWindows): Stat {
+  const usd30 = estimateUsd(w.last30d);
+  return {
+    label: "llm 30d",
+    value: usd30,
+    display: fmtUsd(usd30),
+    hint: `${fmtUsd(estimateUsd(w.allTime))} all-time`,
+  };
+}
+
+// Drill-down row: calls, tokens, estimated spend — each 30d with hints.
 export function usageStats(
   last30d: ModelUsage[],
   allTime: ModelUsage[],
@@ -132,41 +143,82 @@ interface SpanUsageRow {
   output_30d: string | null;
   cache_read_30d: string | null;
   cache_write_30d: string | null;
+  calls_7d: number;
+  input_7d: string | null;
+  output_7d: string | null;
+  cache_read_7d: string | null;
+  cache_write_7d: string | null;
+  calls_p7d: number;
+  input_p7d: string | null;
+  output_p7d: string | null;
+  cache_read_p7d: string | null;
+  cache_write_p7d: string | null;
 }
 
-function toUsage(
-  r: SpanUsageRow,
-  w: "all" | "30d",
-): ModelUsage {
+type Window = "all" | "30d" | "7d" | "p7d";
+
+function toUsage(r: SpanUsageRow, w: Window): ModelUsage {
   const n = (v: string | null) => Number(v ?? 0);
-  return w === "all"
-    ? {
-        model: r.model ?? "unknown",
+  const model = r.model ?? "unknown";
+  switch (w) {
+    case "all":
+      return {
+        model,
         calls: r.calls,
         inputTokens: n(r.input),
         outputTokens: n(r.output),
         cacheReadTokens: n(r.cache_read),
         cacheWriteTokens: n(r.cache_write),
-      }
-    : {
-        model: r.model ?? "unknown",
+      };
+    case "30d":
+      return {
+        model,
         calls: r.calls_30d,
         inputTokens: n(r.input_30d),
         outputTokens: n(r.output_30d),
         cacheReadTokens: n(r.cache_read_30d),
         cacheWriteTokens: n(r.cache_write_30d),
       };
+    case "7d":
+      return {
+        model,
+        calls: r.calls_7d,
+        inputTokens: n(r.input_7d),
+        outputTokens: n(r.output_7d),
+        cacheReadTokens: n(r.cache_read_7d),
+        cacheWriteTokens: n(r.cache_write_7d),
+      };
+    case "p7d":
+      return {
+        model,
+        calls: r.calls_p7d,
+        inputTokens: n(r.input_p7d),
+        outputTokens: n(r.output_p7d),
+        cacheReadTokens: n(r.cache_read_p7d),
+        cacheWriteTokens: n(r.cache_write_p7d),
+      };
+  }
 }
 
 export interface LlmUsageWindows {
   last30d: ModelUsage[];
   allTime: ModelUsage[];
+  // Trailing week and the week before it — the spend-guardrail inputs.
+  last7d: ModelUsage[];
+  prior7d: ModelUsage[];
 }
 
+export const EMPTY_USAGE: LlmUsageWindows = {
+  last30d: [],
+  allTime: [],
+  last7d: [],
+  prior7d: [],
+};
+
 // Per-model token usage from Mastra observability spans (mastra_ai_spans).
-// Both kasava and monroe run Mastra with a Postgres store, so the table and
-// the attributes.usage shape are identical. Returns empty windows when the
-// table doesn't exist yet.
+// Jobflow, kasava, and monroe all run Mastra with a Postgres store, so the
+// table and the attributes.usage shape are identical. Returns empty windows
+// when the table doesn't exist yet.
 export function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {
   return orEmpty(sql<SpanUsageRow[]>`
     SELECT attributes->>'model' AS model,
@@ -183,7 +235,30 @@ export function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {
            sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheRead')::bigint, 0))
              FILTER (WHERE "startedAt" >= now() - interval '30 days') AS cache_read_30d,
            sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheWrite')::bigint, 0))
-             FILTER (WHERE "startedAt" >= now() - interval '30 days') AS cache_write_30d
+             FILTER (WHERE "startedAt" >= now() - interval '30 days') AS cache_write_30d,
+           count(*) FILTER (WHERE "startedAt" >= now() - interval '7 days')::int AS calls_7d,
+           sum((attributes->'usage'->>'inputTokens')::bigint)
+             FILTER (WHERE "startedAt" >= now() - interval '7 days') AS input_7d,
+           sum((attributes->'usage'->>'outputTokens')::bigint)
+             FILTER (WHERE "startedAt" >= now() - interval '7 days') AS output_7d,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheRead')::bigint, 0))
+             FILTER (WHERE "startedAt" >= now() - interval '7 days') AS cache_read_7d,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheWrite')::bigint, 0))
+             FILTER (WHERE "startedAt" >= now() - interval '7 days') AS cache_write_7d,
+           count(*) FILTER (WHERE "startedAt" >= now() - interval '14 days'
+             AND "startedAt" < now() - interval '7 days')::int AS calls_p7d,
+           sum((attributes->'usage'->>'inputTokens')::bigint)
+             FILTER (WHERE "startedAt" >= now() - interval '14 days'
+               AND "startedAt" < now() - interval '7 days') AS input_p7d,
+           sum((attributes->'usage'->>'outputTokens')::bigint)
+             FILTER (WHERE "startedAt" >= now() - interval '14 days'
+               AND "startedAt" < now() - interval '7 days') AS output_p7d,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheRead')::bigint, 0))
+             FILTER (WHERE "startedAt" >= now() - interval '14 days'
+               AND "startedAt" < now() - interval '7 days') AS cache_read_p7d,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheWrite')::bigint, 0))
+             FILTER (WHERE "startedAt" >= now() - interval '14 days'
+               AND "startedAt" < now() - interval '7 days') AS cache_write_p7d
     FROM mastra_ai_spans
     WHERE "spanType" IN ('model_generation', 'model_inference')
       AND attributes->'usage'->>'inputTokens' IS NOT NULL
@@ -205,15 +280,116 @@ export function monroeLlmUsageTable(sql: Sql): Promise<LlmUsageWindows> {
            sum(input_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS input_30d,
            sum(output_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS output_30d,
            sum(cache_read_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS cache_read_30d,
-           sum(cache_write_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS cache_write_30d
+           sum(cache_write_tokens) FILTER (WHERE "createdAt" >= now() - interval '30 days') AS cache_write_30d,
+           count(*) FILTER (WHERE "createdAt" >= now() - interval '7 days')::int AS calls_7d,
+           sum(input_tokens) FILTER (WHERE "createdAt" >= now() - interval '7 days') AS input_7d,
+           sum(output_tokens) FILTER (WHERE "createdAt" >= now() - interval '7 days') AS output_7d,
+           sum(cache_read_tokens) FILTER (WHERE "createdAt" >= now() - interval '7 days') AS cache_read_7d,
+           sum(cache_write_tokens) FILTER (WHERE "createdAt" >= now() - interval '7 days') AS cache_write_7d,
+           count(*) FILTER (WHERE "createdAt" >= now() - interval '14 days'
+             AND "createdAt" < now() - interval '7 days')::int AS calls_p7d,
+           sum(input_tokens) FILTER (WHERE "createdAt" >= now() - interval '14 days'
+             AND "createdAt" < now() - interval '7 days') AS input_p7d,
+           sum(output_tokens) FILTER (WHERE "createdAt" >= now() - interval '14 days'
+             AND "createdAt" < now() - interval '7 days') AS output_p7d,
+           sum(cache_read_tokens) FILTER (WHERE "createdAt" >= now() - interval '14 days'
+             AND "createdAt" < now() - interval '7 days') AS cache_read_p7d,
+           sum(cache_write_tokens) FILTER (WHERE "createdAt" >= now() - interval '14 days'
+             AND "createdAt" < now() - interval '7 days') AS cache_write_p7d
     FROM "LlmUsage"
     GROUP BY 1`);
+}
+
+interface DailySpendRow {
+  day: string;
+  model: string | null;
+  input: string | null;
+  output: string | null;
+  cache_read: string | null;
+  cache_write: string | null;
+}
+
+function toDailyUsage(r: DailySpendRow): ModelUsage {
+  const n = (v: string | null) => Number(v ?? 0);
+  return {
+    model: r.model ?? "unknown",
+    calls: 0,
+    inputTokens: n(r.input),
+    outputTokens: n(r.output),
+    cacheReadTokens: n(r.cache_read),
+    cacheWriteTokens: n(r.cache_write),
+  };
+}
+
+// Per-day per-model usage from Mastra spans, last 30 days. Cost is folded per
+// day in JS via estimateUsd so the pricing map stays the single source.
+export async function mastraDailySpend(sql: Sql): Promise<DailySpendRow[]> {
+  return dailyOrEmpty(sql<DailySpendRow[]>`
+    SELECT to_char(date_trunc('day', "startedAt"), 'YYYY-MM-DD') AS day,
+           attributes->>'model' AS model,
+           sum((attributes->'usage'->>'inputTokens')::bigint) AS input,
+           sum((attributes->'usage'->>'outputTokens')::bigint) AS output,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheRead')::bigint, 0)) AS cache_read,
+           sum(coalesce((attributes->'usage'->'inputDetails'->>'cacheWrite')::bigint, 0)) AS cache_write
+    FROM mastra_ai_spans
+    WHERE "spanType" IN ('model_generation', 'model_inference')
+      AND attributes->'usage'->>'inputTokens' IS NOT NULL
+      AND "startedAt" >= now() - interval '30 days'
+    GROUP BY 1, 2`);
+}
+
+export async function monroeDailySpend(sql: Sql): Promise<DailySpendRow[]> {
+  return dailyOrEmpty(sql<DailySpendRow[]>`
+    SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
+           model,
+           sum(input_tokens) AS input,
+           sum(output_tokens) AS output,
+           sum(cache_read_tokens) AS cache_read,
+           sum(cache_write_tokens) AS cache_write
+    FROM "LlmUsage"
+    WHERE "createdAt" >= now() - interval '30 days'
+    GROUP BY 1, 2`);
+}
+
+async function dailyOrEmpty(
+  query: Promise<DailySpendRow[]>,
+): Promise<DailySpendRow[]> {
+  try {
+    return await query;
+  } catch (error) {
+    if ((error as { code?: string })?.code === "42P01") return [];
+    throw error;
+  }
+}
+
+// Fold per-day per-model rows into one estimated-USD value per day, rounded
+// to cents for tooltip display. fillDays keeps the x-axis a stable, ordered
+// 30-day run — the SQL groups without ORDER BY and Map iteration follows
+// insertion, so raw entries come back shuffled.
+export function foldDailySpend(
+  ...rowSets: DailySpendRow[][]
+): { day: string; value: number }[] {
+  const byDay = new Map<string, number>();
+  for (const rows of rowSets) {
+    for (const r of rows) {
+      const usd = estimateUsd([toDailyUsage(r)]);
+      byDay.set(r.day, (byDay.get(r.day) ?? 0) + usd);
+    }
+  }
+  return fillDays(
+    [...byDay.entries()].map(([day, usd]) => ({
+      day,
+      value: Math.round(usd * 100) / 100,
+    })),
+  );
 }
 
 export function mergeWindows(...windows: LlmUsageWindows[]): LlmUsageWindows {
   return {
     last30d: windows.flatMap((w) => w.last30d),
     allTime: windows.flatMap((w) => w.allTime),
+    last7d: windows.flatMap((w) => w.last7d),
+    prior7d: windows.flatMap((w) => w.prior7d),
   };
 }
 
@@ -225,14 +401,14 @@ async function orEmpty(
   try {
     const rows = await query;
     return {
-      last30d: rows
-        .filter((r) => r.calls_30d > 0)
-        .map((r) => toUsage(r, "30d")),
+      last30d: rows.filter((r) => r.calls_30d > 0).map((r) => toUsage(r, "30d")),
       allTime: rows.map((r) => toUsage(r, "all")),
+      last7d: rows.filter((r) => r.calls_7d > 0).map((r) => toUsage(r, "7d")),
+      prior7d: rows.filter((r) => r.calls_p7d > 0).map((r) => toUsage(r, "p7d")),
     };
   } catch (error) {
     if ((error as { code?: string })?.code === "42P01") {
-      return { last30d: [], allTime: [] };
+      return EMPTY_USAGE;
     }
     throw error;
   }

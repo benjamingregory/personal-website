@@ -1,6 +1,13 @@
-import type { DailyPoint } from "./metrics/types";
+import { fillDays, type DailyPoint } from "./metrics/types";
 
 export type PosthogProject = "JOBFLOW" | "KASAVA" | "MONROE" | "WEBSITE";
+
+// One day of production web traffic — the two series the trend chart draws.
+export interface TrendPoint {
+  day: string; // ISO date, e.g. "2026-07-13"
+  visitors: number;
+  views: number;
+}
 
 // A ranked row in one of the breakdown lists (top pages, sources, events).
 export interface Breakdown {
@@ -17,7 +24,9 @@ export interface WebAnalytics {
   visitors30d?: number;
   pageviews30d?: number;
   logins30d?: number;
-  daily?: DailyPoint[]; // unique visitors per day, last 30 days
+  exceptions24h?: number;
+  exceptions7d?: number;
+  trend?: TrendPoint[]; // visitors + pageviews per day, last 30 days
   topPages?: Breakdown[];
   sources?: Breakdown[];
   events?: Breakdown[]; // product events (non-`$`), 30d
@@ -103,6 +112,26 @@ function people(n: unknown): string {
   return `${count.toLocaleString("en-US")} ${count === 1 ? "person" : "people"}`;
 }
 
+// PostHog only returns days that had events; the chart needs the quiet days
+// too so the x-axis stays a stable 30-point run of consecutive dates.
+function fillTrend(rows: unknown[][], days = 30): TrendPoint[] {
+  const byDay = new Map(rows.map((r) => [String(r[0]), r]));
+  const out: TrendPoint[] = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const row = byDay.get(key);
+    out.push({
+      day: key,
+      visitors: Number(row?.[1] ?? 0),
+      views: Number(row?.[2] ?? 0),
+    });
+  }
+  return out;
+}
+
 export async function webAnalytics(
   project: PosthogProject,
 ): Promise<WebAnalytics> {
@@ -114,7 +143,8 @@ export async function webAnalytics(
   const noise = NOISE_EVENTS.map((e) => `'${e}'`).join(", ");
 
   try {
-    const [totals, daily, topPages, sources, events] = await Promise.all([
+    const [totals, daily, topPages, sources, events, exceptions] =
+      await Promise.all([
       hogql(
         cfg,
         `SELECT
@@ -128,7 +158,7 @@ export async function webAnalytics(
       ),
       hogql(
         cfg,
-        `SELECT toDate(timestamp) AS day, uniq(person_id) AS visitors
+        `SELECT toDate(timestamp) AS day, uniq(person_id) AS visitors, count() AS views
          FROM events
          WHERE event = '$pageview' AND timestamp >= now() - INTERVAL 30 DAY${scope}
          GROUP BY day ORDER BY day`,
@@ -160,19 +190,32 @@ export async function webAnalytics(
            AND timestamp >= now() - INTERVAL 30 DAY${scope}
          GROUP BY event ORDER BY c DESC LIMIT 5`,
       ),
+      // Error tracking. The host scope stays on so shared-project products
+      // (jobflow / the personal site) don't count each other's exceptions —
+      // the trade-off is that server-side exceptions without a $host are
+      // invisible to allowlisted projects.
+      hogql(
+        cfg,
+        `SELECT
+           countIf(timestamp >= now() - INTERVAL 24 HOUR),
+           count()
+         FROM events
+         WHERE event = '$exception'
+           AND timestamp >= now() - INTERVAL 7 DAY${scope}`,
+      ),
     ]);
 
     const t = totals[0] ?? [];
+    const ex = exceptions[0] ?? [];
     return {
       configured: true,
       visitors30d: Number(t[0] ?? 0),
       pageviews30d: Number(t[1] ?? 0),
       visitors7d: Number(t[2] ?? 0),
       logins30d: loginEvent ? Number(t[3] ?? 0) : undefined,
-      daily: daily.map((r) => ({
-        day: String(r[0]),
-        value: Number(r[1]),
-      })),
+      exceptions24h: Number(ex[0] ?? 0),
+      exceptions7d: Number(ex[1] ?? 0),
+      trend: fillTrend(daily),
       topPages: topPages.map((r) => ({
         label: String(r[0] || "/"),
         value: Number(r[1]),
@@ -187,6 +230,133 @@ export async function webAnalytics(
         value: Number(r[1]),
         hint: people(r[2]),
       })),
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Drill-down analytics: the same 30d window as webAnalytics but wider
+// (15-row breakdowns) and deeper (audience + exception facets). Loaded only
+// on /[project] pages, never for the overview cards.
+export interface WebAnalyticsDetail {
+  configured: boolean;
+  error?: string;
+  topPages?: Breakdown[];
+  sources?: Breakdown[];
+  events?: Breakdown[];
+  countries?: Breakdown[];
+  devices?: Breakdown[];
+  browsers?: Breakdown[];
+  // $exception events grouped by exception type, 30d.
+  exceptionGroups?: Breakdown[];
+  exceptionsDaily?: DailyPoint[];
+}
+
+export async function webAnalyticsDetail(
+  project: PosthogProject,
+): Promise<WebAnalyticsDetail> {
+  const cfg = config(project);
+  if (!cfg) return { configured: false };
+
+  const scope = hostClause(project);
+  const noise = NOISE_EVENTS.map((e) => `'${e}'`).join(", ");
+
+  const pageviewFacet = (expr: string, alias: string, limit: number) =>
+    hogql(
+      cfg,
+      `SELECT ${expr} AS ${alias}, count() AS c, uniq(person_id) AS people
+       FROM events
+       WHERE event = '$pageview' AND timestamp >= now() - INTERVAL 30 DAY${scope}
+       GROUP BY ${alias} ORDER BY c DESC LIMIT ${limit}`,
+    );
+
+  try {
+    const [
+      topPages,
+      sources,
+      events,
+      countries,
+      devices,
+      browsers,
+      exceptionGroups,
+      exceptionsDaily,
+    ] = await Promise.all([
+      pageviewFacet("properties.$pathname", "path", 15),
+      hogql(
+        cfg,
+        `SELECT
+           coalesce(nullIf(nullIf(properties.$referring_domain, '$direct'), ''), 'direct') AS source,
+           uniq(person_id) AS visitors
+         FROM events
+         WHERE event = '$pageview' AND timestamp >= now() - INTERVAL 30 DAY${scope}
+         GROUP BY source ORDER BY visitors DESC LIMIT 15`,
+      ),
+      hogql(
+        cfg,
+        `SELECT event, count() AS c, uniq(person_id) AS people
+         FROM events
+         WHERE NOT startsWith(event, '$') AND event NOT IN (${noise})
+           AND timestamp >= now() - INTERVAL 30 DAY${scope}
+         GROUP BY event ORDER BY c DESC LIMIT 15`,
+      ),
+      pageviewFacet(
+        "coalesce(nullIf(properties.$geoip_country_code, ''), 'unknown')",
+        "country",
+        10,
+      ),
+      pageviewFacet(
+        "coalesce(nullIf(properties.$device_type, ''), 'unknown')",
+        "device",
+        6,
+      ),
+      pageviewFacet(
+        "coalesce(nullIf(properties.$browser, ''), 'unknown')",
+        "browser",
+        8,
+      ),
+      hogql(
+        cfg,
+        `SELECT coalesce(nullIf(properties.$exception_type, ''), 'unknown') AS kind,
+                count() AS c, uniq(person_id) AS people
+         FROM events
+         WHERE event = '$exception' AND timestamp >= now() - INTERVAL 30 DAY${scope}
+         GROUP BY kind ORDER BY c DESC LIMIT 10`,
+      ),
+      hogql(
+        cfg,
+        `SELECT toDate(timestamp) AS day, count() AS c
+         FROM events
+         WHERE event = '$exception' AND timestamp >= now() - INTERVAL 30 DAY${scope}
+         GROUP BY day ORDER BY day`,
+      ),
+    ]);
+
+    const toBreakdown = (rows: unknown[][], withPeople = true): Breakdown[] =>
+      rows.map((r) => ({
+        label: String(r[0] ?? "unknown"),
+        value: Number(r[1]),
+        hint: withPeople && r[2] != null ? people(r[2]) : undefined,
+      }));
+
+    return {
+      configured: true,
+      topPages: toBreakdown(topPages),
+      sources: toBreakdown(sources, false),
+      events: toBreakdown(events),
+      countries: toBreakdown(countries),
+      devices: toBreakdown(devices),
+      browsers: toBreakdown(browsers),
+      exceptionGroups: toBreakdown(exceptionGroups),
+      exceptionsDaily: fillDays(
+        exceptionsDaily.map((r) => ({
+          day: String(r[0]),
+          value: Number(r[1]),
+        })),
+      ),
     };
   } catch (error) {
     return {

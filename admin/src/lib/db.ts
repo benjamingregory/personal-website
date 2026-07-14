@@ -17,8 +17,9 @@ export function db(envVar: string): Sql | null {
       // cover the largest burst: queries queued beyond the pool get pipelined
       // onto still-connecting sockets, which Supabase's pooler intermittently
       // drops without a reply — the query then hangs forever and the section
-      // never renders.
-      max: 8,
+      // never renders. A /[project] page bursts ~12 concurrent queries
+      // (snapshot 6-7 + series90 + product 4 + llm daily), so 16 with room.
+      max: 16,
       idle_timeout: 20,
       connect_timeout: 10,
       // No prepared statements — required through Supabase's transaction

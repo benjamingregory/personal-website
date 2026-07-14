@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Education",
   description:
     "Stanford GSB MBA, Venture for America Fellowship, BA Economics from Washington University in St. Louis.",
+  alternates: { canonical: "/education" },
   openGraph: {
     title: "Education · Ben Gregory",
     description: "Stanford GSB, Venture for America, Washington University",

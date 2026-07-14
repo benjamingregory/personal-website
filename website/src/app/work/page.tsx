@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Work",
   description:
     "Professional experience as a software engineer and product manager — from founding startups to leading teams at scale-ups.",
+  alternates: { canonical: "/work" },
   openGraph: {
     title: "Work · Ben Gregory",
     description:
