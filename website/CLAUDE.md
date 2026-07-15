@@ -71,8 +71,9 @@ src/components/
 ├── ProjectCarousel.tsx     # "use client" — Embla carousel + thumbnail strip for multi-image projects
 ├── ui/                     # shadcn/ui — Carousel (+ Button, used only by Carousel)
 ├── webgl/
-│   ├── gradient-hero.tsx   # "use client" — Paper Shaders mesh-gradient hero layer
-│   ├── gradient-hero-lazy.tsx # dynamic({ssr:false}) wrapper — keeps shader out of the initial bundle
+│   ├── gradient-hero.tsx   # "use client" — Paper Shaders mesh-gradient hero layer, fades in over the fallback
+│   ├── gradient-hero-lazy.tsx # SSR shell — static CSS wash fallback + dynamic({ssr:false}) shader import
+│   ├── palette.ts          # Wash colors + mask, shared by shader and fallback
 │   └── flags.ts            # WEBGL_FX_ENABLED — kill switch via NEXT_PUBLIC_WEBGL_FX=off
 └── motion/                 # Motion primitives (client except HoverCard, reduced-motion aware)
     ├── FadeUp.tsx          # Section fade-up on viewport enter
