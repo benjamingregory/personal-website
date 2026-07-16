@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Private health dashboard at admin.benjaminrgregory.com — a single pane of
-glass over four projects (Jobflow, Kasava, Monroe, the personal site). The
+glass over four projects (Inrole, Kasava, Monroe, the personal site). The
 overview's status strip answers "is anything broken?", its 2×2 card grid
 answers "is anything moving?", and depth lives on per-project `/[project]`
 drill-down pages (90d activity, traffic facets, exceptions, LLM spend/day,
@@ -19,7 +19,7 @@ single-key shortcuts). Add a third only with a comparable justification.
 ## Navigation
 
 - **DeskNav** ([desk-nav.tsx](src/components/desk-nav.tsx)) — persistent
-  micro-label row in the layout: `overview · ¹jobflow · ²kasava · ³monroe ·
+  micro-label row in the layout: `overview · ¹inrole · ²kasava · ³monroe ·
   ⁴site`. Digits are the keyboard shortcuts (`o` = overview), rendered as
   faint hints and hidden below `sm`. Active link is brighter ink — no tabs,
   no pills, no accent colors in nav. Per-project **deviation-only dots**
@@ -89,14 +89,15 @@ single-key shortcuts). Add a third only with a comparable justification.
   prefixed `$`).
   - **Everything is scoped to production hosts.** Local dev is the operator's
     own machine, not a user; counting it makes a dead product look alive. Other
-    projects get `NOT LIKE 'localhost%'`; Jobflow and the personal site get an
+    projects get `NOT LIKE 'localhost%'`; Inrole and the personal site get an
     exact-host allowlist (`PROJECT_HOSTS`), which excludes localhost for free.
-  - That allowlist is load-bearing, not stylistic: Jobflow and the personal site
-    **share one PostHog project**, and Jobflow is served from
-    `jobflow.benjaminrgregory.com` — a *subdomain of the personal site's own
-    apex*. Any `$host LIKE '%benjaminrgregory.com'` test therefore matches both
-    products (and this admin), silently filing Jobflow's traffic under the
-    personal site. Split them by exact host, never by suffix.
+  - That allowlist is load-bearing, not stylistic: Inrole and the personal site
+    **share one PostHog project**. Inrole now lives at `app.inrole.xyz`, but its
+    historical traffic was captured from `jobflow.benjaminrgregory.com` — a
+    *subdomain of the personal site's own apex*. Any
+    `$host LIKE '%benjaminrgregory.com'` test therefore matches both products
+    (and this admin), silently filing that traffic under the personal site.
+    Split them by exact host, never by suffix, and keep the legacy hosts listed.
 - [src/lib/vercel.ts](src/lib/vercel.ts) — latest production deployment per
   project (`VERCEL_TOKEN` + `VERCEL_TEAM_ID` + `VERCEL_PROJECT_ID_<PROJECT>`).
   Unconfigured → silently skipped.

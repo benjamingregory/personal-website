@@ -1,6 +1,6 @@
 import { fillDays, type DailyPoint } from "./metrics/types";
 
-export type PosthogProject = "JOBFLOW" | "KASAVA" | "MONROE" | "WEBSITE";
+export type PosthogProject = "INROLE" | "KASAVA" | "MONROE" | "WEBSITE";
 
 // One day of production web traffic — the two series the trend chart draws.
 export interface TrendPoint {
@@ -38,18 +38,24 @@ export interface WebAnalytics {
 // as they get instrumented, e.g. MONROE: "user_signed_in".
 const LOGIN_EVENTS: Partial<Record<PosthogProject, string>> = {};
 
-// Jobflow and the personal site share one PostHog project (free-tier account),
+// Inrole and the personal site share one PostHog project (free-tier account),
 // so their sections split the same event stream by host.
 //
-// It has to be an exact-host allowlist, not a LIKE: Jobflow is served from
-// jobflow.benjaminrgregory.com, a *subdomain* of the personal site's own apex,
-// so any `$host LIKE '%benjaminrgregory.com'` test matches both products (and
-// the admin) and silently files Jobflow's traffic under the personal site.
-// Projects with their own PostHog project need no entry. Drop these once that
-// account gets separate projects.
+// It has to be an exact-host allowlist, not a LIKE: Inrole's historical
+// traffic was captured from jobflow.benjaminrgregory.com, a *subdomain* of the
+// personal site's own apex, so any `$host LIKE '%benjaminrgregory.com'` test
+// matches both products (and the admin) and silently files Inrole's traffic
+// under the personal site. The legacy hosts stay listed so pre-rename events
+// keep counting. Projects with their own PostHog project need no entry. Drop
+// these once that account gets separate projects.
 const PROJECT_HOSTS: Partial<Record<PosthogProject, string[]>> = {
   WEBSITE: ["benjaminrgregory.com", "www.benjaminrgregory.com"],
-  JOBFLOW: ["jobflow.benjaminrgregory.com", "jobflow-fawn.vercel.app"],
+  INROLE: [
+    "app.inrole.xyz",
+    // Legacy hosts from before the jobflow → inrole rename; keep for history.
+    "jobflow.benjaminrgregory.com",
+    "jobflow-fawn.vercel.app",
+  ],
 };
 
 // Local dev is the operator's own machine, not a user — counting it would make
@@ -191,7 +197,7 @@ export async function webAnalytics(
          GROUP BY event ORDER BY c DESC LIMIT 5`,
       ),
       // Error tracking. The host scope stays on so shared-project products
-      // (jobflow / the personal site) don't count each other's exceptions —
+      // (inrole / the personal site) don't count each other's exceptions —
       // the trade-off is that server-side exceptions without a $host are
       // invisible to allowlisted projects.
       hogql(

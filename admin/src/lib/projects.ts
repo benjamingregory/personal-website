@@ -1,10 +1,10 @@
 import type { PosthogProject } from "./posthog";
 import {
-  jobflowLlmDaily,
-  jobflowMetrics,
-  jobflowProduct,
-  jobflowSeries90,
-} from "./metrics/jobflow";
+  inroleLlmDaily,
+  inroleMetrics,
+  inroleProduct,
+  inroleSeries90,
+} from "./metrics/inrole";
 import {
   kasavaLlmDaily,
   kasavaMetrics,
@@ -57,19 +57,19 @@ export interface ProjectDef {
 
 export const PROJECTS: ProjectDef[] = [
   {
-    key: "jobflow",
-    name: "Jobflow",
-    shortName: "jobflow",
+    key: "inrole",
+    name: "Inrole",
+    shortName: "inrole",
     descriptor: "AI job-search assistant",
     accent: "#c98500",
-    posthog: "JOBFLOW",
+    posthog: "INROLE",
     db: true,
     pulse: { noun: "evaluations", staleAfterHours: 48 },
-    load: jobflowMetrics,
+    load: inroleMetrics,
     detail: {
-      series90: jobflowSeries90,
-      product: jobflowProduct,
-      llmDaily: jobflowLlmDaily,
+      series90: inroleSeries90,
+      product: inroleProduct,
+      llmDaily: inroleLlmDaily,
     },
   },
   {

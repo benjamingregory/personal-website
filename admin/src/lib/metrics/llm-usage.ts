@@ -216,7 +216,7 @@ export const EMPTY_USAGE: LlmUsageWindows = {
 };
 
 // Per-model token usage from Mastra observability spans (mastra_ai_spans).
-// Jobflow, kasava, and monroe all run Mastra with a Postgres store, so the
+// Inrole, kasava, and monroe all run Mastra with a Postgres store, so the
 // table and the attributes.usage shape are identical. Returns empty windows
 // when the table doesn't exist yet.
 export function mastraSpanUsage(sql: Sql): Promise<LlmUsageWindows> {

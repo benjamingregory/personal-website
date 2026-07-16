@@ -5,7 +5,7 @@ import { StatusDot } from "./status-dot";
 import { NavClient } from "./nav-client";
 
 // Deviation-only nav dot: silence is the ok state — a dot next to `monroe`
-// while you're reading the jobflow page is signal, four green dots is noise.
+// while you're reading the inrole page is signal, four green dots is noise.
 async function NavDot({ projectKey }: { projectKey: string }) {
   const snap = await loadSnapshot(projectKey);
   if (snap.status === "ok") return null;

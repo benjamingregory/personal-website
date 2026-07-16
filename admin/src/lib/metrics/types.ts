@@ -2,7 +2,7 @@ import type { LlmUsageWindows } from "./llm-usage";
 import type { Breakdown } from "../posthog";
 
 // One titled ranked list in a project's drill-down "product" section —
-// per-project shape (jobflow: applications by status; monroe: top shows…).
+// per-project shape (inrole: applications by status; monroe: top shows…).
 export interface ProductBreakdown {
   title: string;
   rows: Breakdown[];

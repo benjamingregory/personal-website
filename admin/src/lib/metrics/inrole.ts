@@ -13,8 +13,8 @@ import {
   type ProjectReport,
 } from "./types";
 
-export async function jobflowMetrics(): Promise<ProjectReport> {
-  const sql = db("JOBFLOW_DATABASE_URL");
+export async function inroleMetrics(): Promise<ProjectReport> {
+  const sql = db("INROLE_DATABASE_URL");
   if (!sql) return UNCONFIGURED;
 
   try {
@@ -83,10 +83,10 @@ interface LabeledRow {
   value: number;
 }
 
-// ── Drill-down loaders (/{jobflow} page) ────────────────────────────────────
+// ── Drill-down loaders (/{inrole} page) ────────────────────────────────────
 
-export async function jobflowSeries90(): Promise<ActivitySeries | null> {
-  const sql = db("JOBFLOW_DATABASE_URL");
+export async function inroleSeries90(): Promise<ActivitySeries | null> {
+  const sql = db("INROLE_DATABASE_URL");
   if (!sql) return null;
   try {
     const rows = await sql`
@@ -107,8 +107,8 @@ export async function jobflowSeries90(): Promise<ActivitySeries | null> {
   }
 }
 
-export async function jobflowProduct(): Promise<ProductBreakdown[]> {
-  const sql = db("JOBFLOW_DATABASE_URL");
+export async function inroleProduct(): Promise<ProductBreakdown[]> {
+  const sql = db("INROLE_DATABASE_URL");
   if (!sql) return [];
   try {
     const [byStatus, byArchetype, scoreBuckets, topCompanies] =
@@ -145,8 +145,8 @@ export async function jobflowProduct(): Promise<ProductBreakdown[]> {
   }
 }
 
-export async function jobflowLlmDaily() {
-  const sql = db("JOBFLOW_DATABASE_URL");
+export async function inroleLlmDaily() {
+  const sql = db("INROLE_DATABASE_URL");
   if (!sql) return null;
   try {
     return foldDailySpend(await mastraDailySpend(sql));
